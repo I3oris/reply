@@ -84,7 +84,11 @@ module Reply
 
     private def raw(io : T, &) forall T
       {% if T.has_method?(:raw) %}
-        io.raw { yield io }
+        if io.tty?
+          io.raw { yield io }
+        else
+          yield io
+        end
       {% else %}
         yield io
       {% end %}

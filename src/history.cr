@@ -1,6 +1,6 @@
 module Reply
   class History
-    @history = [] of Array(String)
+    getter history = [] of Array(String)
     @index = 0
 
     # Hold the history lines being edited, always contains one element more than @history
@@ -25,28 +25,28 @@ module Reply
       @index = 0
     end
 
-    # Sets the index to last added value
-    def set_to_last
-      @index = @history.size
-      @edited_history.fill(nil).push(nil)
-    end
-
-    def up(current_edited_lines : Array(String), &)
+    def up(current_edited_lines : Array(String))
       unless @index == 0
         @edited_history[@index] = current_edited_lines
 
         @index -= 1
-        yield (@edited_history[@index]? || @history[@index]).dup
+        (@edited_history[@index]? || @history[@index]).dup
       end
     end
 
-    def down(current_edited_lines : Array(String), &)
+    def down(current_edited_lines : Array(String))
       unless @index == @history.size
         @edited_history[@index] = current_edited_lines
 
         @index += 1
-        yield (@edited_history[@index]? || @history[@index]).dup
+        (@edited_history[@index]? || @history[@index]).dup
       end
+    end
+
+    # Sets the index to last added value
+    protected def set_to_last
+      @index = @history.size
+      @edited_history.fill(nil).push(nil)
     end
   end
 end

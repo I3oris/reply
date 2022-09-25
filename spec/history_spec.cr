@@ -56,9 +56,7 @@ module Reply
 
       # Before down: current edition...
       # After down: current edition...
-      history.down(["current edition..."]) do
-        raise "Should not yield"
-      end.should be_nil
+      history.down(["current edition..."]).should be_nil
       history.verify(ENTRIES, index: 3)
 
       # Before up: current edition...
@@ -66,9 +64,7 @@ module Reply
       #  puts i
       #  i += 1
       # end
-      history.up(["current edition..."]) do |entry|
-        entry
-      end.should eq ENTRIES[2]
+      history.up(["current edition..."]).should eq ENTRIES[2]
       history.verify(ENTRIES, index: 2)
 
       # Before up: while i < 10
@@ -76,36 +72,28 @@ module Reply
       #  i += 1
       # end
       # After up: i = 0
-      history.up(ENTRIES[2]) do |entry|
-        entry
-      end.should eq ENTRIES[1]
+      history.up(ENTRIES[2]).should eq ENTRIES[1]
       history.verify(ENTRIES, index: 1)
 
       # Before up (edited): edited_i = 0
       # After up: puts "Hello World"
-      history.up([%(edited_i = 0)]) do |entry|
-        entry
-      end.should eq ENTRIES[0]
+      history.up([%(edited_i = 0)]).should eq ENTRIES[0]
       history.verify(ENTRIES, index: 0)
 
       # Before up: puts "Hello World"
       # After up: puts "Hello World"
-      history.up(ENTRIES[0]) do
-        raise "Should not yield"
-      end.should be_nil
+      history.up(ENTRIES[0]).should be_nil
       history.verify(ENTRIES, index: 0)
 
       # Before down: puts "Hello World"
       # After down: edited_i = 0
-      history.down(ENTRIES[0]) do |entry|
-        entry
-      end.should eq [%(edited_i = 0)]
+      history.down(ENTRIES[0]).should eq [%(edited_i = 0)]
       history.verify(ENTRIES, index: 1)
 
       # Before down down: edited_i = 0
       # After down down: current edition...
-      history.down([%(edited_i = 0)], &.itself).should eq ENTRIES[2]
-      history.down(ENTRIES[2], &.itself).should eq [%(current edition...)]
+      history.down([%(edited_i = 0)]).should eq ENTRIES[2]
+      history.down(ENTRIES[2]).should eq [%(current edition...)]
       history.verify(ENTRIES, index: 3)
     end
   end

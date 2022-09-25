@@ -5,9 +5,9 @@ require "./auto_completion_interface"
 
 module Reply
   class Interface
-    @editor : ExpressionEditor
+    getter history = History.new
+    getter editor : ExpressionEditor
     @auto_completion : AutoCompletionInterface
-    @history = History.new
     @char_reader = CharReader.new
     getter line_number = 1
 
@@ -64,7 +64,7 @@ module Reply
     end
 
     def save_in_history?(expression : String)
-      true
+      !expression.blank?
     end
 
     def auto_complete(current_word : String, expression_before : String)
@@ -96,20 +96,16 @@ module Reply
         when :up
           has_moved = @editor.move_cursor_up
 
-          if !has_moved
-            @history.up(@editor.lines) do |expression|
-              @editor.replace(expression)
-              @editor.move_cursor_to_end
-            end
+          if !has_moved && (new_lines = @history.up(@editor.lines))
+            @editor.replace(new_lines)
+            @editor.move_cursor_to_end
           end
         when :down
           has_moved = @editor.move_cursor_down
 
-          if !has_moved
-            @history.down(@editor.lines) do |expression|
-              @editor.replace(expression)
-              @editor.move_cursor_to_end_of_line(y: 0)
-            end
+          if !has_moved && (new_lines = @history.down(@editor.lines))
+            @editor.replace(new_lines)
+            @editor.move_cursor_to_end_of_line(y: 0)
           end
         when :left
           @editor.move_cursor_left
@@ -176,10 +172,6 @@ module Reply
     def reset
       @line_number = 1
       @auto_completion.close
-    end
-
-    def clear_history
-      @history.clear
     end
 
     # If overridden, can yield an expression to giveback to `run`, see `PryInterface`.

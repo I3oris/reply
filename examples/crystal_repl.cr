@@ -89,7 +89,7 @@ repl_interface = CrystalInterface.new
 repl_interface.run do |expression|
   case expression
   when "clear_history"
-    repl_interface.clear_history
+    repl_interface.history.clear
   when "reset"
     repl_interface.reset
   when "exit"

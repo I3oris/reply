@@ -13,7 +13,7 @@ CRYSTAL_KEYWORD = %w(
 )
 
 CLOSING_KEYWORD  = %w(end \) ] })
-UNINDENT_KEYWORD = %w(else elsif when in rescue ensure in when)
+UNINDENT_KEYWORD = %w()
 
 class CrystalInterface < Reply::Interface
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
@@ -52,34 +52,15 @@ class CrystalInterface < Reply::Interface
     /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~]/
   end
 
-  # TODO:
-  # def reindent_line(indent, line)
-  #   case line.strip
-  #   when .in? CLOSING_KEYWORD then indent
-  #   when .in? UNINDENT_KEYWORD then indent - 1
-  #   else
-  #     nil
-  #   end
-  # end
-
-  def replace_on_char(line, x)
-    line = line.rstrip(' ')
-    return nil if x != line.size
-
-    keyword = line.lstrip(' ')
-
-    expr = @editor.expression_before_cursor # /!\
-
-    case keyword
-    when Nil
-    when .in? CLOSING_KEYWORD
-      replacement = "  "*self.indentation_level(expr) + keyword
-    when .in? UNINDENT_KEYWORD
-      indent = {self.indentation_level(expr) - 1, 0}.max
-      replacement = "  "*indent + keyword
+  def reindent_line(line)
+    case line.strip
+    when "end", ")", "]", "}"
+      0
+    when "else", "elsif", "rescue", "ensure", "in", "when"
+      -1
+    else
+      nil
     end
-
-    replacement
   end
 
   def save_in_history?(expression : String) : Bool

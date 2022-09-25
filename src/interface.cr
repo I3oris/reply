@@ -57,7 +57,7 @@ module Reply
       0
     end
 
-    def replace_on_char(line : String, x : Int32)
+    def reindent_line(line : String)
       nil
     end
 
@@ -140,12 +140,7 @@ module Reply
           @editor.prompt_next
           next
         when Char
-          @editor.update do
-            @editor << read
-
-            replacement = replace_on_char(@editor.current_line, @editor.x)
-            @editor.current_line = replacement if replacement
-          end
+          on_char(read)
         when String
           @editor.update do
             @editor << read
@@ -241,6 +236,21 @@ module Reply
 
         # Move cursor:
         @editor.move_cursor_to(x: word_begin + replacement.size, y: @editor.y)
+      end
+    end
+
+    private def on_char(char)
+      @editor.update do
+        @editor << char
+        line = @editor.current_line.rstrip(' ')
+
+        if @editor.x == line.size
+          if shift = self.reindent_line(line)
+            indent = self.indentation_level(@editor.expression_before_cursor)
+            new_indent = (indent + shift).clamp 0..
+            @editor.current_line = "  "*new_indent + @editor.current_line.lstrip(' ')
+          end
+        end
       end
     end
 

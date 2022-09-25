@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 RESULTS = {
-  [
+  "Int32", [
     "abs", "abs2", "bit", "bit_length", "bits", "bits_set?", "ceil", "chr",
     "clamp", "class", "clone", "crystal_type_id", "day", "days", "digits", "divisible_by?",
     "divmod", "downto", "dup", "even?", "fdiv", "floor", "format", "gcd",
@@ -17,7 +17,7 @@ RESULTS = {
     "to_u64!", "to_u8", "to_u8!", "trailing_zeros_count", "trunc", "try", "unsafe_as", "unsafe_chr",
     "unsafe_div", "unsafe_mod", "unsafe_shl", "unsafe_shr", "upto", "week", "weeks", "year",
     "years", "zero?", "as", "as?", "is_a?", "nil?", "responds_to?",
-  ], "Int32",
+  ],
 }
 
 module Reply

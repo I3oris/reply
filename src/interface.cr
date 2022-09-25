@@ -2,7 +2,6 @@ require "./history"
 require "./expression_editor"
 require "./char_reader"
 require "./auto_completion_interface"
-require "colorize"
 
 module Reply
   class Interface
@@ -21,27 +20,22 @@ module Reply
         end
       end
 
-      @auto_completion = AutoCompletionInterface.new do |name_filter, expression|
-        auto_complete(name_filter, expression)
-      end
+      @auto_completion = AutoCompletionInterface.new(&->auto_complete(String, String))
+      @auto_completion.set_display_title(&->auto_completion_display_title(IO, String))
+      @auto_completion.set_display_entry(&->auto_completion_display_entry(IO, String, String))
+      @auto_completion.set_display_selected_entry(&->auto_completion_display_selected_entry(IO, String))
 
       @editor.set_header do |io, previous_height|
         @auto_completion.display_entries(io, color?, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
       end
 
-      @editor.set_highlight do |expression|
-        highlight(expression)
-      end
+      @editor.set_highlight(&->highlight(String))
     end
 
     def prompt(io : IO, line_number : Int32, color? : Bool)
       io << "$:"
       io << sprintf("%03d", line_number)
       io << "> "
-    end
-
-    def auto_complete(current_word : String, expression_before : String)
-      return [] of String, ""
     end
 
     # `"`, `'`, are not considered as delimiter
@@ -71,6 +65,22 @@ module Reply
 
     def save_in_history?(expression : String)
       true
+    end
+
+    def auto_complete(current_word : String, expression_before : String)
+      return "", [] of String
+    end
+
+    def auto_completion_display_title(io : IO, title : String)
+      @auto_completion.default_display_title(io, title)
+    end
+
+    def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
+      @auto_completion.default_display_entry(io, entry_matched, entry_remaining)
+    end
+
+    def auto_completion_display_selected_entry(io : IO, entry : String)
+      @auto_completion.default_display_selected_entry(io, entry)
     end
 
     # ameba:disable Metrics/CyclomaticComplexity

@@ -1,8 +1,8 @@
+require "./term_cursor"
 require "./term_size"
+require "colorize"
 
 module Reply
-  alias AutoCompleteProc = String, String -> {Array(String), String?}
-
   # Interface of auto-completion.
   #
   # It provides following important methods:
@@ -25,17 +25,20 @@ module Reply
     getter? cleared = false
     @selection_pos : Int32? = nil
 
-    @scope_name = ""
+    @title = ""
     @all_entries = [] of String
     getter entries = [] of String
     property name_filter = ""
 
-    def initialize(&@auto_complete : AutoCompleteProc)
+    def initialize(&@auto_complete : String, String -> {String, Array(String)})
+      @display_title = ->default_display_title(IO, String)
+      @display_entry = ->default_display_entry(IO, String, String)
+      @display_selected_entry = ->default_display_selected_entry(IO, String)
     end
 
-    def complete_on(name_filter : String, expression_before_word_on_cursor : String) : String?
-      @all_entries, @scope_name = @auto_complete.call(name_filter, expression_before_word_on_cursor)
-      self.name_filter = name_filter
+    def complete_on(current_word : String, expression_before : String) : String?
+      @title, @all_entries = @auto_complete.call(current_word, expression_before)
+      self.name_filter = current_word
 
       @entries.empty? ? nil : common_root(@entries)
     end
@@ -66,9 +69,13 @@ module Reply
 
       height = 0
 
-      # Print scope type name:
-      io.print @scope_name.colorize(:blue).underline.toggle(color?)
-      io.puts ":"
+      # Print title:
+      if color?
+        @display_title.call(io, @title)
+      else
+        io << @title << ":"
+      end
+      io.puts
       height += 1
 
       if @entries.empty?
@@ -112,19 +119,22 @@ module Reply
           if r + c*nb_rows == @selection_pos
             # Colorize selection:
             if color?
-              io.print entry_str.colorize.bright.on_dark_gray
+              @display_selected_entry.call(io, entry_str)
             else
-              io.print ">" + entry_str[...-1] # if no color, remove last spaces to let place to '*'.
+              io << ">" + entry_str[...-1] # if no color, remove last spaces to let place to '*'.
             end
           else
             # Display entry_str, with @name_filter prefix in bright:
             unless entry.empty?
-              io.print color? ? @name_filter.colorize.bright : @name_filter
-              io.print entry_str.lchop(@name_filter)
+              if color?
+                io << @display_entry.call(io, @name_filter, entry_str.lchop(@name_filter))
+              else
+                io << entry_str
+              end
             end
           end
         end
-        io.print Term::Cursor.clear_line_after if color?
+        io << Term::Cursor.clear_line_after if color?
         io.puts
       end
 
@@ -177,6 +187,27 @@ module Reply
     def clear
       close
       @cleared = true
+    end
+
+    def set_display_title(&@display_title : IO, String ->)
+    end
+
+    def set_display_entry(&@display_entry : IO, String, String ->)
+    end
+
+    def set_display_selected_entry(&@display_selected_entry : IO, String ->)
+    end
+
+    protected def default_display_title(io, title)
+      io << title.colorize.underline << ":"
+    end
+
+    protected def default_display_entry(io, entry_matched, entry_remaining)
+      io << entry_matched.colorize.bright << entry_remaining
+    end
+
+    protected def default_display_selected_entry(io, entry)
+      io << entry.colorize.bright.on_dark_gray
     end
 
     private def nb_cols_hold_in_term_width(column_widths)

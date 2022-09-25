@@ -67,8 +67,20 @@ class CrystalInterface < Reply::Interface
     !expression.blank?
   end
 
-  def auto_complete(name_filter : String, expression : String) : {Array(String), String}
-    return CRYSTAL_KEYWORD.dup, "Keywords"
+  def auto_complete(name_filter : String, expression : String) : {String, Array(String)}
+    return "Keywords:", CRYSTAL_KEYWORD.dup
+  end
+
+  def auto_completion_display_title(io : IO, title : String)
+    io << title
+  end
+
+  def auto_completion_display_selected_entry(io : IO, entry : String)
+    io << entry.colorize.red.bright
+  end
+
+  def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
+    io << entry_matched.colorize.red.bright << entry_remaining
   end
 end
 

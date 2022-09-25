@@ -20,7 +20,7 @@ module Reply
   # * `open`/`close`: Toggle display, clear entries if close.
   #
   # * `clear`: Like `close`, but display a empty space instead of nothing.
-  class AutoCompletionInterface
+  private class AutoCompletionInterface
     getter? open = false
     getter? cleared = false
     @selection_pos : Int32? = nil

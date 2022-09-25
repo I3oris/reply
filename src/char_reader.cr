@@ -1,5 +1,5 @@
 module Reply
-  struct CharReader
+  private struct CharReader
     def initialize(buffer_size = 8192)
       @slice_buffer = Bytes.new(buffer_size)
     end

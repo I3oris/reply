@@ -653,7 +653,7 @@ module Reply
       end
     end
 
-    def expression_scrolled?
+    protected def expression_scrolled?
       expression_height() > max_height()
     end
 

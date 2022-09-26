@@ -1,5 +1,31 @@
 module Reply
   private struct CharReader
+    enum Sequence
+      EOF
+      UP
+      DOWN
+      RIGHT
+      LEFT
+      ENTER
+      ALT_ENTER
+      ESCAPE
+      DELETE
+      BACK
+      CTRL_C
+      CTRL_D
+      CTRL_E
+      CTRL_A
+      CTRL_X
+      CTRL_UP
+      CTRL_DOWN
+      CTRL_LEFT
+      CTRL_RIGHT
+      TAB
+      SHIFT_TAB
+      HOME
+      END
+    end
+
     def initialize(buffer_size = 8192)
       @slice_buffer = Bytes.new(buffer_size)
     end
@@ -10,71 +36,75 @@ module Reply
     end
 
     # ameba:disable Metrics/CyclomaticComplexity
-    private def parse_escape_sequence(chars : Bytes) : Char | Symbol | String?
+    private def parse_escape_sequence(chars : Bytes) : Char | Sequence | String?
       return String.new(chars) if chars.size > 6
-      return :exit if chars.empty?
+      return Sequence::EOF if chars.empty?
 
       case chars[0]?
       when '\e'.ord
         case chars[1]?
         when '['.ord
           case chars[2]?
-          when 'A'.ord then :up
-          when 'B'.ord then :down
-          when 'C'.ord then :right
-          when 'D'.ord then :left
-          when 'Z'.ord then :shift_tab
+          when 'A'.ord then Sequence::UP
+          when 'B'.ord then Sequence::DOWN
+          when 'C'.ord then Sequence::RIGHT
+          when 'D'.ord then Sequence::LEFT
+          when 'Z'.ord then Sequence::SHIFT_TAB
           when '3'.ord
             if chars[3]? == '~'.ord
-              :delete
+              Sequence::DELETE
             end
           when '1'.ord
             if {chars[3]?, chars[4]?} == {';'.ord, '5'.ord}
               case chars[5]?
-              when 'A'.ord then :ctrl_up
-              when 'B'.ord then :ctrl_down
-              when 'C'.ord then :ctrl_right
-              when 'D'.ord then :ctrl_left
+              when 'A'.ord then Sequence::CTRL_UP
+              when 'B'.ord then Sequence::CTRL_DOWN
+              when 'C'.ord then Sequence::CTRL_RIGHT
+              when 'D'.ord then Sequence::CTRL_LEFT
               end
             elsif chars[3]? == '~'.ord # linux console HOME
-              :move_cursor_to_begin
+              Sequence::HOME
             end
           when '4'.ord # linux console END
             if chars[3]? == '~'.ord
-              :move_cursor_to_end
+              Sequence::END
             end
           when 'H'.ord # xterm HOME
-            :move_cursor_to_begin
+            Sequence::HOME
           when 'F'.ord # xterm END
-            :move_cursor_to_end
+            Sequence::END
           end
         when '\t'.ord
-          :shift_tab
+          Sequence::SHIFT_TAB
         when '\r'.ord
-          :insert_new_line
+          Sequence::ALT_ENTER
         when 'O'.ord
           if chars[2]? == 'H'.ord # gnome terminal HOME
-            :move_cursor_to_begin
+            Sequence::HOME
           elsif chars[2]? == 'F'.ord # gnome terminal END
-            :move_cursor_to_end
+            Sequence::END
           end
         else
-          :escape
+          Sequence::ESCAPE
         end
       when '\r'.ord, '\n'.ord
-        :enter
+        Sequence::ENTER
       when '\t'.ord
-        :tab
+        Sequence::TAB
       when ctrl('c')
-        :keyboard_interrupt
-      when ctrl('d'), ctrl('x'), '\0'.ord
-        :exit
+        Sequence::CTRL_C
+      when ctrl('d')
+        Sequence::CTRL_D
+      when ctrl('x')
+        Sequence::CTRL_X
       when ctrl('a')
-        :move_cursor_to_begin
+        Sequence::CTRL_A
       when ctrl('e')
-        :move_cursor_to_end
+        Sequence::CTRL_E
+      when '\0'.ord
+        Sequence::EOF
       when 0x7f
-        :back
+        Sequence::BACK
       else
         if chars.size == 1
           chars[0].chr

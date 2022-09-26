@@ -66,15 +66,19 @@ module Reply
   end
 
   struct CharReader
+    def verify_read(to_read, expect : CharReader::Sequence)
+      verify_read(to_read, [expect])
+    end
+
     def verify_read(to_read, expect : Array)
-      chars = [] of Char | Symbol | String?
+      chars = [] of Char | CharReader::Sequence | String?
       io = IO::Memory.new
       io << to_read
       io.rewind
       loop do
         c = self.read_char(io)
+        break if c == CharReader::Sequence::EOF
         chars << c
-        break if c == :exit
       end
       chars.should eq expect
     end

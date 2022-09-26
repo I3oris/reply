@@ -166,81 +166,43 @@ module Reply
       nil
     end
 
-    def read_next : String? # ameba:disable Metrics/CyclomaticComplexity
+    def read_next(from io : IO = STDIN) : String? # ameba:disable Metrics/CyclomaticComplexity
       @editor.prompt_next
 
       loop do
-        read = @char_reader.read_char(from: STDIN)
+        read = @char_reader.read_char(from: io)
         case read
-        when :enter
-          @auto_completion.close
-          on_enter { |line| return line }
-        when :up
-          has_moved = @editor.move_cursor_up
-
-          if !has_moved && (new_lines = @history.up(@editor.lines))
-            @editor.replace(new_lines)
-            @editor.move_cursor_to_end
-          end
-        when :down
-          has_moved = @editor.move_cursor_down
-
-          if !has_moved && (new_lines = @history.down(@editor.lines))
-            @editor.replace(new_lines)
-            @editor.move_cursor_to_end_of_line(y: 0)
-          end
-        when :left
-          @editor.move_cursor_left
-        when :right
-          @editor.move_cursor_right
-        when :ctrl_up
-          on_ctrl_up { |line| return line }
-        when :ctrl_down
-          on_ctrl_down { |line| return line }
-        when :ctrl_left
-          on_ctrl_left { |line| return line }
-        when :ctrl_right
-          on_ctrl_right { |line| return line }
-        when :delete
-          @editor.update { delete }
-        when :back
-          auto_complete_remove_char if @auto_completion.open?
-          @editor.update { back }
-        when :tab
-          on_tab
-        when :shift_tab
-          on_tab(shift_tab: true)
-        when :escape
-          @auto_completion.close
-          @editor.update
-        when :insert_new_line
-          @auto_completion.close
-          @editor.update { insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor)) }
-        when :move_cursor_to_begin
-          @editor.move_cursor_to_begin
-        when :move_cursor_to_end
-          @editor.move_cursor_to_end
-        when :keyboard_interrupt
-          @auto_completion.close
-          @editor.end_editing
-          output.puts "^C"
-          @history.set_to_last
-          @editor.prompt_next
-          next
-        when Char
-          on_char(read)
-        when String
-          @editor.update do
-            @editor << read
-          end
-        when :exit
+        in Char             then on_char(read)
+        in String           then on_string(read)
+        in .enter?          then on_enter { |line| return line }
+        in .up?             then on_up
+        in .down?           then on_down
+        in .left?           then on_left
+        in .right?          then on_right
+        in .ctrl_up?        then on_ctrl_up { |line| return line }
+        in .ctrl_down?      then on_ctrl_down { |line| return line }
+        in .ctrl_left?      then on_ctrl_left { |line| return line }
+        in .ctrl_right?     then on_ctrl_right { |line| return line }
+        in .delete?         then on_delete
+        in .back?           then on_back
+        in .tab?            then on_tab
+        in .shift_tab?      then on_tab(shift_tab: true)
+        in .escape?         then on_escape
+        in .alt_enter?      then on_enter(alt_enter: true) { }
+        in .home?, .ctrl_a? then on_begin
+        in .end?, .ctrl_e?  then on_end
+        in .ctrl_c?         then on_ctrl_c
+        in .eof?, .ctrl_d?, .ctrl_x?
           output.puts
           return nil
         end
 
-        if !read.in?(:tab, :enter, :insert_new_line, :shift_tab, :escape, :back) && @auto_completion.open?
-          auto_complete_insert_char(read)
-          @editor.update
+        if read.is_a?(CharReader::Sequence) && (read.tab? || read.enter? || read.alt_enter? || read.shift_tab? || read.escape? || read.back? || read.ctrl_c?)
+        else
+          if @auto_completion.open?
+            auto_complete_insert_char(read)
+            @editor.update
+          end
         end
       end
     end
@@ -255,6 +217,68 @@ module Reply
     def reset
       @line_number = 1
       @auto_completion.close
+    end
+
+    private def on_char(char)
+      @editor.update do
+        @editor << char
+        line = @editor.current_line.rstrip(' ')
+
+        if @editor.x == line.size
+          if shift = self.reindent_line(line)
+            indent = self.indentation_level(@editor.expression_before_cursor)
+            new_indent = (indent + shift).clamp 0..
+            @editor.current_line = "  "*new_indent + @editor.current_line.lstrip(' ')
+          end
+        end
+      end
+    end
+
+    private def on_string(string)
+      @editor.update do
+        @editor << string
+      end
+    end
+
+    private def on_enter(alt_enter = false, &)
+      @auto_completion.close
+      if alt_enter || (@editor.cursor_on_last_line? && continue?(@editor.expression))
+        @editor.update { insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor)) }
+      else
+        submit_expr
+        yield @editor.expression
+      end
+    end
+
+    private def on_up
+      has_moved = @editor.move_cursor_up
+
+      if !has_moved && (new_lines = @history.up(@editor.lines))
+        @editor.replace(new_lines)
+        @editor.move_cursor_to_end
+      end
+    end
+
+    private def on_down
+      has_moved = @editor.move_cursor_down
+
+      if !has_moved && (new_lines = @history.down(@editor.lines))
+        @editor.replace(new_lines)
+        @editor.move_cursor_to_end_of_line(y: 0)
+      end
+    end
+
+    private def on_left
+      @editor.move_cursor_left
+    end
+
+    private def on_right
+      @editor.move_cursor_right
+    end
+
+    private def on_back
+      auto_complete_remove_char if @auto_completion.open?
+      @editor.update { back }
     end
 
     # If overridden, can yield an expression to giveback to `run`.
@@ -280,13 +304,16 @@ module Reply
       @editor.move_cursor_right
     end
 
-    private def on_enter(&)
-      if @editor.cursor_on_last_line? && continue?(@editor.expression)
-        @editor.update { insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor)) }
-      else
-        submit_expr
-        yield @editor.expression
-      end
+    private def on_delete
+      @editor.update { delete }
+    end
+
+    private def on_ctrl_c
+      @auto_completion.close
+      @editor.end_editing
+      output.puts "^C"
+      @history.set_to_last
+      @editor.prompt_next
     end
 
     private def on_tab(shift_tab = false)
@@ -325,19 +352,17 @@ module Reply
       end
     end
 
-    private def on_char(char)
-      @editor.update do
-        @editor << char
-        line = @editor.current_line.rstrip(' ')
+    private def on_escape
+      @auto_completion.close
+      @editor.update
+    end
 
-        if @editor.x == line.size
-          if shift = self.reindent_line(line)
-            indent = self.indentation_level(@editor.expression_before_cursor)
-            new_indent = (indent + shift).clamp 0..
-            @editor.current_line = "  "*new_indent + @editor.current_line.lstrip(' ')
-          end
-        end
-      end
+    private def on_begin
+      @editor.move_cursor_to_begin
+    end
+
+    private def on_end
+      @editor.move_cursor_to_end
     end
 
     private def auto_complete_insert_char(read)

@@ -16,6 +16,7 @@ It includes the following features:
 
 It doesn't support yet:
 * Saving history in a file
+* History reverse i-search
 * Customizable hotkeys
 * Window compatibility (Not tested yet)
 * Unicode characters
@@ -63,7 +64,7 @@ class MyInterface < Reply::Interface
   end
 
   def continue?(expression : String) : Bool
-    # Return whether the interface should continue on multi-line, depending of the expression
+    # Return whether the interface should continue on multiline, depending of the expression
   end
 
   def format(expression : String) : String?
@@ -75,7 +76,7 @@ class MyInterface < Reply::Interface
   end
 
   def word_delimiters : Regex
-    # Return the word delimiters used for pick the work for auto-completion
+    # Return the word delimiters used for pick the word for auto-completion
   end
 
   def save_in_history?(expression : String) : Bool

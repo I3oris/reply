@@ -2,7 +2,10 @@ require "./term_cursor"
 require "./term_size"
 
 module Reply
-  # ExpressionEditor allows to edit and display an expression:
+  # The `ExpressionEditor` allows to edit and display an expression.
+  #
+  # Its main task is to provide the display of the prompt and a multiline expression within
+  # the term bounds, and ensure the correspondence between the cursor on screen and the cursor on the expression.
   #
   # Usage example:
   # ```
@@ -37,13 +40,16 @@ module Reply
   # @editor.prompt_next
   # ```
   #
-  # The above display:
-  #
+  # The above displays:
+  # ```
   # prompt>puts "Hello World"
   # prompt>  puts "!"
   # => ok
   # prompt>
+  # ```
   #
+  # Methods that modify the expression should be placed inside an `update` so the screen can be refreshed taking in account
+  # the adding or removing of lines, and doesn't boilerplate the display.
   class ExpressionEditor
     getter lines : Array(String) = [""]
     getter expression : String? { lines.join('\n') }
@@ -70,34 +76,31 @@ module Reply
     getter x = 0
     getter y = 0
 
-    # @highlighter = Highlighter.new
-
     @prompt : Int32, Bool -> String
     @prompt_size : Int32
 
     @scroll_offset = 0
     @header_height = 0
 
-    # A `Proc` allowing to display a header above the prompt. (used by auto-completion)
-    #
-    # *io*: The IO in which the header should be displayed.
-    # *previous_hight*: Previous header height, useful to keep a header size constant.
-    # Should returns the exact *height* printed in the io.
     @header : IO, Int32 -> Int32 = ->(io : IO, previous_height : Int32) { 0 }
-
     @highlight = ->(code : String) { code }
 
-    # Prompt size must stay constant.
+    # Creates a new `ExpressionEditor` with the given *prompt*.
     def initialize(&@prompt : Int32, Bool -> String)
       @prompt_size = @prompt.call(0, false).size # uncolorized size
 
       at_exit { @output.print Term::Cursor.show }
     end
 
-    # Sets the header proc.
+    # Sets a `Proc` allowing to display a header above the prompt. (used by auto-completion)
+    #
+    # *io*: The IO in which the header should be displayed.
+    # *previous_hight*: Previous header height, useful to keep a header size constant.
+    # Should returns the exact *height* printed in the io.
     def set_header(&@header : IO, Int32 -> Int32)
     end
 
+    # Sets the `Proc` to highlight the expression.
     def set_highlight(&@highlight : String -> String)
     end
 
@@ -145,31 +148,40 @@ module Reply
     # Following functions modifies the expression, they should be called inside
     # an `update` block to see the changes in the screen: #
 
+    # Should be called inside an `update`.
     def previous_line=(line)
       @lines[@y - 1] = line
       @expression = @expression_height = @colorized_lines = nil
     end
 
+    # Should be called inside an `update`.
     def current_line=(line)
       @lines[@y] = line
       @expression = @expression_height = @colorized_lines = nil
     end
 
+    # Should be called inside an `update`.
     def next_line=(line)
       @lines[@y + 1] = line
       @expression = @expression_height = @colorized_lines = nil
     end
 
+    # Should be called inside an `update`.
     def delete_line(y)
       @lines.delete_at(y)
       @expression = @expression_height = @colorized_lines = nil
     end
 
+    # Should be called inside an `update`.
     def clear_expression
       @lines.clear << ""
       @expression = @expression_height = @colorized_lines = nil
     end
 
+    # Should be called inside an `update`.
+    #
+    # If *char* is `\n` or `\r`, inserts a new line with indent 0.
+    # Does nothing if the char is an `ascii_control?`.
     def <<(char : Char) : self
       return insert_new_line(0) if char.in? '\n', '\r'
       return self if char.ascii_control?
@@ -184,6 +196,7 @@ module Reply
       self
     end
 
+    # Should be called inside an `update`.
     def <<(str : String) : self
       str.each_char do |ch|
         self << ch
@@ -191,6 +204,7 @@ module Reply
       self
     end
 
+    # Should be called inside an `update`.
     def insert_new_line(indent)
       case @x
       when current_line.size
@@ -205,6 +219,7 @@ module Reply
       self
     end
 
+    # Should be called inside an `update`.
     def delete
       case @x
       when current_line.size
@@ -218,6 +233,7 @@ module Reply
       end
     end
 
+    # Should be called inside an `update`.
     def back
       case @x
       when 0
@@ -532,9 +548,13 @@ module Reply
       move_cursor_to(@lines[y].size, y, allow_scrolling: allow_scrolling)
     end
 
-    # Rewinds the cursor to the beginning of the expression
+    # Refresh the screen.
+    #
+    # It clears the display of the current expression,
     # then yields for modifications, and displays the new expression.
-    # cursor is adjusted to not overflow if the new expression is smaller.
+    #
+    # if *force_full_view* is true, whole expression is displayed, even if it overflow the term width, otherwise
+    # the expression is bound and can be scrolled.
     def update(force_full_view = false, &)
       @output.print Term::Cursor.hide
       rewind_cursor
@@ -592,6 +612,7 @@ module Reply
       @output.puts
     end
 
+    # Clear the expression and start a new prompt on a next line.
     def prompt_next
       @scroll_offset = 0
       @lines = [""]

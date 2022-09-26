@@ -56,9 +56,7 @@ module Reply
     # If closed, do nothing.
     #
     # Returns the actual displayed height.
-    #
-    # ameba:disable Metrics/CyclomaticComplexity
-    def display_entries(io, color? = true, max_height = 10, min_height = 0) : Int32
+    def display_entries(io, color? = true, max_height = 10, min_height = 0) : Int32 # ameba:disable Metrics/CyclomaticComplexity
       if cleared?
         min_height.times { io.puts }
         return min_height

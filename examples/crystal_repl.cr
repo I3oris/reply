@@ -12,8 +12,34 @@ CRYSTAL_KEYWORD = %w(
   verbatim when while with yield
 )
 
-CLOSING_KEYWORD  = %w(end \) ] })
-UNINDENT_KEYWORD = %w()
+CONTINUE_ERROR = [
+  "expecting identifier 'end', not 'EOF'",
+  "expecting token 'CONST', not 'EOF'",
+  "expecting any of these tokens: IDENT, CONST, `, <<, <, <=, ==, ===, !=, =~, !~, >>, >, >=, +, -, *, /, //, !, ~, %, &, |, ^, **, [], []?, []=, <=>, &+, &-, &*, &** (not 'EOF')",
+  "expecting any of these tokens: ;, NEWLINE (not 'EOF')",
+  "expecting token ')', not 'EOF'",
+  "expecting token ']', not 'EOF'",
+  "expecting token '}', not 'EOF'",
+  "expecting token '%}', not 'EOF'",
+  "expecting token '}', not ','",
+  "expected '}' or named tuple name, not EOF",
+  "unexpected token: NEWLINE",
+  "unexpected token: EOF",
+  "unexpected token: EOF (expecting when, else or end)",
+  "unexpected token: EOF (expecting ',', ';' or '\n')",
+  "Unexpected EOF on heredoc identifier",
+  "unterminated parenthesized expression",
+  "unterminated call",
+  "Unterminated string literal",
+  "unterminated hash literal",
+  "Unterminated command literal",
+  "unterminated array literal",
+  "unterminated tuple literal",
+  "unterminated macro",
+  "Unterminated string interpolation",
+  "invalid trailing comma in call",
+  "unknown token: '\\u{0}'",
+]
 
 class CrystalInterface < Reply::Interface
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
@@ -31,8 +57,7 @@ class CrystalInterface < Reply::Interface
     Crystal::Parser.new(expression).parse
     false
   rescue e : Crystal::CodeError
-    # e.unterminated? ? true : false
-    false
+    e.message.in? CONTINUE_ERROR
   end
 
   def format(expression : String) : String?
@@ -96,6 +121,7 @@ repl_interface.run do |expression|
     break
   when .presence
     # Eval expression here
-    puts " => #{expression}"
+    print " => "
+    puts Crystal::SyntaxHighlighter::Colorize.highlight!(expression)
   end
 end

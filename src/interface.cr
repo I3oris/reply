@@ -4,6 +4,46 @@ require "./char_reader"
 require "./auto_completion_interface"
 
 module Reply
+  # ```
+  # SDTIN -> CharReader -> Interface -> ExpressionEditor -> STDOUT
+  #                        ^       ^
+  #                        |       |
+  #                    History   AutoCompletion
+  # ```
+
+  # Interface for your REPL.
+  #
+  # Create a subclass of it and override methods to customize behavior.
+  #
+  # ```
+  # class MyInterface < Reply::Interface
+  #   def prompt(io, line_number, color?)
+  #     io << "reply> "
+  #   end
+  # end
+  # ```
+  #
+  # Run the REPL with `run`.
+  #
+  # ```
+  # repl_interface = MyInterface.new
+  #
+  # repl_interface.run do |expression|
+  #   # Eval expression here
+  #   puts " => #{expression}"
+  # end
+  # ```
+  #
+  # Or `read_next`:
+  # ```
+  # loop do
+  #   expression = repl_interface.read_next
+  #   break unless expression
+  #
+  #   # Eval expression here
+  #   puts " => #{expression}"
+  # end
+  # ```
   class Interface
     getter history = History.new
     getter editor : ExpressionEditor
@@ -32,59 +72,101 @@ module Reply
       @editor.set_highlight(&->highlight(String))
     end
 
+    # Override to customize the prompt.
+    #
+    # Toggle the colorization following *color?*.
+    #
+    # default: `$:001> `
     def prompt(io : IO, line_number : Int32, color? : Bool)
       io << "$:"
       io << sprintf("%03d", line_number)
       io << "> "
     end
 
-    # `"`, `'`, are not considered as delimiter
-    def word_delimiters
-      /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/
+    # Override to enable expression highlighting.
+    #
+    # default: uncolored `expression`
+    def highlight(expression : String)
+      expression
     end
 
+    # Override this method to makes the interface continue on multiline, depending of the expression.
+    #
+    # default: `false`
     def continue?(expression : String)
       false
     end
 
+    # Override to enable reformatting after submitting.
+    #
+    # default: unchanged `expression`
+    def format(expression : String)
+      nil
+    end
+
+    # Override to return the expected indentation level in function of expression before cursor.
+    #
+    # default: `0`
     def indentation_level(expression_before_cursor : String)
       0
+    end
+
+    # Override this method to return the regex delimiting words.
+    #
+    # default: `/[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/`
+    def word_delimiters
+      # `"`, `'`, are not considered as delimiter
+      /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/
+    end
+
+    # Override to select with expression is saved in history.
+    #
+    # default: `!expression.blank?`
+    def save_in_history?(expression : String)
+      !expression.blank?
+    end
+
+    # Override to integrate auto-completion.
+    #
+    # *current_word* is picked following `word_delimiters`.
+    # It expects to return `Tuple` with:
+    # * a title : `String`
+    # * the auto-completion results : `Array(String)`
+    #
+    # default: `{"", [] of String}`
+    def auto_complete(current_word : String, expression_before : String)
+      return "", [] of String
+    end
+
+    # Override to customize how title is displayed.
+    #
+    # default: `title` underline + ":"
+    def auto_completion_display_title(io : IO, title : String)
+      @auto_completion.default_display_title(io, title)
+    end
+
+    # Override to customize how entry is displayed.
+    #
+    # Entry is split in two (`entry_matched` + `entry_remaining`). `entry_matched` correspond
+    # to the part already typed when auto-completion was triggered.
+    #
+    # default: `entry_matched` bright + entry_remaining normal.
+    def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
+      @auto_completion.default_display_entry(io, entry_matched, entry_remaining)
+    end
+
+    # Override to customize how the selected entry is displayed.
+    #
+    # default: `entry` bright on dark grey
+    def auto_completion_display_selected_entry(io : IO, entry : String)
+      @auto_completion.default_display_selected_entry(io, entry)
     end
 
     def reindent_line(line : String)
       nil
     end
 
-    def format(expression : String)
-      nil
-    end
-
-    def highlight(expression : String)
-      expression
-    end
-
-    def save_in_history?(expression : String)
-      !expression.blank?
-    end
-
-    def auto_complete(current_word : String, expression_before : String)
-      return "", [] of String
-    end
-
-    def auto_completion_display_title(io : IO, title : String)
-      @auto_completion.default_display_title(io, title)
-    end
-
-    def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
-      @auto_completion.default_display_entry(io, entry_matched, entry_remaining)
-    end
-
-    def auto_completion_display_selected_entry(io : IO, entry : String)
-      @auto_completion.default_display_selected_entry(io, entry)
-    end
-
-    # ameba:disable Metrics/CyclomaticComplexity
-    def read_next : String?
+    def read_next : String? # ameba:disable Metrics/CyclomaticComplexity
       @editor.prompt_next
 
       loop do
@@ -169,12 +251,17 @@ module Reply
       end
     end
 
+    # Reset the line number and close auto-completion results.
     def reset
       @line_number = 1
       @auto_completion.close
     end
 
-    # If overridden, can yield an expression to giveback to `run`, see `PryInterface`.
+    # If overridden, can yield an expression to giveback to `run`.
+    # This is made because the `PryInterface` in `IC` can override these hotkeys and yield
+    # command like `step`/`next`.
+    #
+    # TODO: It need a proper design to override hotkeys.
     private def on_ctrl_up(& : String ->)
       @editor.scroll_down
     end
@@ -216,9 +303,6 @@ module Reply
           replacement = @auto_completion.selection_next
         end
       else
-        # # Set auto-completion context from repl, allow auto-completion to take account of previously defined types, methods and local vars.
-        # @crystal_completer.set_context(repl) if repl
-
         # Get hole expression before cursor, allow auto-completion to deduce the receiver type
         expr = @editor.expression_before_cursor(x: word_begin)
 
@@ -233,7 +317,7 @@ module Reply
       if replacement
         @editor.update do
           # Replace `word_on_cursor` by the replacement word:
-          @editor.current_line = line.sub(word_begin..word_end, replacement) # if replacement
+          @editor.current_line = line.sub(word_begin..word_end, replacement)
         end
 
         # Move cursor:
@@ -258,12 +342,6 @@ module Reply
 
     private def auto_complete_insert_char(read)
       if read.is_a? Char && word_char?(@editor.x - 1)
-        # line = @editor.current_line
-
-        # Retrieve the word under the cursor (corresponding to the method name being write)
-        # word_begin, word_end = @editor.word_bound
-        # word_on_cursor = line[word_begin..word_end]
-
         @auto_completion.name_filter = self.word_on_cursor
       elsif @editor.expression_scrolled? || read.is_a?(String)
         @auto_completion.close
@@ -274,17 +352,13 @@ module Reply
 
     private def auto_complete_remove_char
       if word_char?(@editor.x - 1)
-        # line = @editor.current_line
-
-        # word_begin, word_end = @editor.word_bound
-        # word_on_cursor =
         @auto_completion.name_filter = self.word_on_cursor[...-1]
       else
         @auto_completion.clear
       end
     end
 
-    # Returns begin and end of the word under the cursor:
+    # Returns begin and end of the word under the cursor.
     private def word_on_cursor_begin_end
       x = @editor.x
       line = @editor.current_line

@@ -4,13 +4,6 @@ require "./char_reader"
 require "./auto_completion_interface"
 
 module Reply
-  # ```
-  # SDTIN -> CharReader -> Interface -> ExpressionEditor -> STDOUT
-  #                        ^       ^
-  #                        |       |
-  #                    History   AutoCompletion
-  # ```
-
   # Interface for your REPL.
   #
   # Create a subclass of it and override methods to customize behavior.
@@ -23,7 +16,7 @@ module Reply
   # end
   # ```
   #
-  # Run the REPL with `run`.
+  # Run the REPL with `run`:
   #
   # ```
   # repl_interface = MyInterface.new
@@ -34,7 +27,7 @@ module Reply
   # end
   # ```
   #
-  # Or `read_next`:
+  # Or with `read_next`:
   # ```
   # loop do
   #   expression = repl_interface.read_next
@@ -45,6 +38,15 @@ module Reply
   # end
   # ```
   class Interface
+    # General architecture:
+    #
+    # ```
+    # SDTIN -> CharReader -> Interface -> ExpressionEditor -> STDOUT
+    #                        ^       ^
+    #                        |       |
+    #                    History   AutoCompletion
+    # ```
+
     getter history = History.new
     getter editor : ExpressionEditor
     @auto_completion : AutoCompletionInterface
@@ -140,7 +142,7 @@ module Reply
 
     # Override to customize how title is displayed.
     #
-    # default: `title` underline + ":"
+    # default: `title` underline + `":"`
     def auto_completion_display_title(io : IO, title : String)
       @auto_completion.default_display_title(io, title)
     end
@@ -150,7 +152,7 @@ module Reply
     # Entry is split in two (`entry_matched` + `entry_remaining`). `entry_matched` correspond
     # to the part already typed when auto-completion was triggered.
     #
-    # default: `entry_matched` bright + entry_remaining normal.
+    # default: `entry_matched` bright + `entry_remaining` normal.
     def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
       @auto_completion.default_display_entry(io, entry_matched, entry_remaining)
     end
@@ -162,6 +164,18 @@ module Reply
       @auto_completion.default_display_selected_entry(io, entry)
     end
 
+    # Override to enable line re-indenting.
+    #
+    # This methods is called each time a character is entered.
+    #
+    # You should return either:
+    # * `nil`: keep the line as it
+    # * `Int32` value: re-indent the line by an amount equal to the returned value, relatively to `indentation_level`.
+    #   (0 to follow `indentation_level`)
+    #
+    # See `example/crystal_repl`.
+    #
+    # default: `nil`
     def reindent_line(line : String)
       nil
     end
@@ -225,6 +239,7 @@ module Reply
         line = @editor.current_line.rstrip(' ')
 
         if @editor.x == line.size
+          # Re-indent line after typing a char.
           if shift = self.reindent_line(line)
             indent = self.indentation_level(@editor.expression_before_cursor)
             new_indent = (indent + shift).clamp 0..
@@ -243,7 +258,9 @@ module Reply
     private def on_enter(alt_enter = false, &)
       @auto_completion.close
       if alt_enter || (@editor.cursor_on_last_line? && continue?(@editor.expression))
-        @editor.update { insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor)) }
+        @editor.update do
+          insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor))
+        end
       else
         submit_expr
         yield @editor.expression
@@ -319,9 +336,9 @@ module Reply
     private def on_tab(shift_tab = false)
       line = @editor.current_line
 
-      # Retrieve the word under the cursor (corresponding to the method name being write)
-      word_begin, word_end = self.word_on_cursor_begin_end
-      word_on_cursor = line[word_begin..word_end]
+      # Retrieve the word under the cursor
+      word_begin, word_end = self.current_word_begin_end
+      current_word = line[word_begin..word_end]
 
       if @auto_completion.open?
         if shift_tab
@@ -330,11 +347,11 @@ module Reply
           replacement = @auto_completion.selection_next
         end
       else
-        # Get hole expression before cursor, allow auto-completion to deduce the receiver type
+        # Get whole expression before cursor, allow auto-completion to deduce the receiver type
         expr = @editor.expression_before_cursor(x: word_begin)
 
         # Compute auto-completion, return `replacement` (`nil` if no entry, full name if only one entry, or the begin match of entries otherwise)
-        replacement = @auto_completion.complete_on(word_on_cursor, expr)
+        replacement = @auto_completion.complete_on(current_word, expr)
 
         if replacement && @auto_completion.entries.size >= 2
           @auto_completion.open
@@ -343,7 +360,7 @@ module Reply
 
       if replacement
         @editor.update do
-          # Replace `word_on_cursor` by the replacement word:
+          # Replace the current_word by the replacement word:
           @editor.current_line = line.sub(word_begin..word_end, replacement)
         end
 
@@ -367,7 +384,7 @@ module Reply
 
     private def auto_complete_insert_char(read)
       if read.is_a? Char && word_char?(@editor.x - 1)
-        @auto_completion.name_filter = self.word_on_cursor
+        @auto_completion.name_filter = self.current_word
       elsif @editor.expression_scrolled? || read.is_a?(String)
         @auto_completion.close
       else
@@ -377,14 +394,14 @@ module Reply
 
     private def auto_complete_remove_char
       if word_char?(@editor.x - 1)
-        @auto_completion.name_filter = self.word_on_cursor[...-1]
+        @auto_completion.name_filter = self.current_word[...-1]
       else
         @auto_completion.clear
       end
     end
 
     # Returns begin and end of the word under the cursor.
-    private def word_on_cursor_begin_end
+    private def current_word_begin_end
       x = @editor.x
       line = @editor.current_line
       word_begin = line.rindex(self.word_delimiters, offset: {x - 1, 0}.max) || -1
@@ -393,8 +410,8 @@ module Reply
       {word_begin + 1, word_end - 1}
     end
 
-    private def word_on_cursor
-      word_begin, word_end = word_on_cursor_begin_end()
+    private def current_word
+      word_begin, word_end = self.current_word_begin_end
 
       @editor.current_line[word_begin..word_end]
     end

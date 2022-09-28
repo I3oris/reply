@@ -61,7 +61,7 @@ module Reply::Term
       CSI + "#{(n || 1)}A"
     end
 
-    # ditto
+    # :ditto:
     def cursor_up(n)
       up(n)
     end
@@ -71,7 +71,7 @@ module Reply::Term
       CSI + "#{(n || 1)}B"
     end
 
-    # ditto
+    # :ditto:
     def cursor_down(n)
       down(n)
     end
@@ -81,7 +81,7 @@ module Reply::Term
       CSI + "#{n || 1}D"
     end
 
-    # ditto
+    # :ditto:
     def cursor_backward(n)
       backward(n)
     end
@@ -91,7 +91,7 @@ module Reply::Term
       CSI + "#{n || 1}C"
     end
 
-    # ditto
+    # :ditto:
     def cursor_forward(n)
       forward(n)
     end
@@ -146,7 +146,7 @@ module Reply::Term
       end.join
     end
 
-    # ditto
+    # Clear a number of rows
     def clear_rows(n, direction = :up)
       clear_lines(n, direction)
     end

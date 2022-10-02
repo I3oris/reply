@@ -56,7 +56,7 @@ module Reply
     # If closed, do nothing.
     #
     # Returns the actual displayed height.
-    def display_entries(io, color? = true, max_height = 10, min_height = 0) : Int32 # ameba:disable Metrics/CyclomaticComplexity
+    def display_entries(io, color? = true, width = Term::Size.width, max_height = 10, min_height = 0) : Int32 # ameba:disable Metrics/CyclomaticComplexity
       if cleared?
         min_height.times { io.puts }
         return min_height
@@ -81,19 +81,19 @@ module Reply
         return {height, min_height}.max
       end
 
-      nb_rows = compute_nb_row(@entries, max_nb_row: max_height - height)
+      nb_rows = compute_nb_row(@entries, max_nb_row: max_height - height, width: width)
 
       columns = @entries.in_groups_of(nb_rows, filled_up_with: "")
       column_widths = columns.map &.max_of &.size.+(2)
 
-      nb_cols = nb_cols_hold_in_term_width(column_widths)
+      nb_cols = nb_colomns_in_width(column_widths, width)
 
       col_start = 0
       if pos = @selection_pos
         col_end = pos // nb_rows
 
         if col_end >= nb_cols
-          nb_cols = nb_cols_hold_in_term_width(column_widths: column_widths[..col_end].reverse_each)
+          nb_cols = nb_colomns_in_width(column_widths[..col_end].reverse_each, width)
 
           col_start = col_end - nb_cols + 1
         end
@@ -177,6 +177,7 @@ module Reply
     def close
       @selection_pos = nil
       @entries.clear
+      @name_filter = ""
       @all_entries.clear
       @open = false
       @cleared = false
@@ -208,12 +209,12 @@ module Reply
       io << entry.colorize.bright.on_dark_gray
     end
 
-    private def nb_cols_hold_in_term_width(column_widths)
+    private def nb_colomns_in_width(column_widths, width)
       nb_cols = 0
-      width = 0
+      w = 0
       column_widths.each do |col_width|
-        width += col_width
-        break if width > self.term_width
+        w += col_width
+        break if w > width
         nb_cols += 1
       end
       nb_cols
@@ -222,26 +223,22 @@ module Reply
     # Computes the min number of rows required to display entries:
     # * if all entries cannot fit in `max_nb_row` rows, returns `max_nb_row`,
     # * if there are less than 10 entries, returns `entries.size` because in this case, it's more convenient to display them in one column.
-    private def compute_nb_row(entries, max_nb_row)
+    private def compute_nb_row(entries, max_nb_row, width)
       if entries.size > 10
         # test possible nb rows: (1 to max_nb_row)
         1.to max_nb_row do |r|
-          width = 0
+          w = 0
           # Sum the width of each given column:
           entries.each_slice(r, reuse: true) do |col|
-            width += col.max_of &.size + 2
+            w += col.max_of &.size + 2
           end
 
-          # If width fit width terminal, we found min row required:
-          return r if width < self.term_width
+          # If *w* goes past *width*, we found min row required:
+          return r if w < width
         end
       end
 
       {entries.size, max_nb_row}.min
-    end
-
-    private def term_width
-      Term::Size.width
     end
 
     # Finds the common root text between given entries.

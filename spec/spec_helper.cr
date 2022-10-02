@@ -2,40 +2,28 @@ require "spec"
 require "../src/reply"
 
 module Reply
-  module Term::Size
-    # For spec, simulate of term size of 5 lines, and 15 characters wide:
-    class_property size = {15, 5}
-  end
-
-  class Reply::AutoCompletionInterface
-    @width : Int32 = Term::Size.width
-
-    # Simulate term width for auto-completion handler.
-    def term_width
-      @width
+  class AutoCompletionInterface
+    def verify(open, entries = [] of String, name_filter = "", cleared = false, selection_pos = nil)
+      self.open?.should eq open
+      self.cleared?.should eq cleared
+      self.name_filter.should eq name_filter
+      self.entries.should eq entries
+      @selection_pos.should eq selection_pos
     end
 
-    # Change temporally the simulated term size for auto-completion handler.
-    def with_term_width(w)
-      old_size = @width
-      @width = w
-      yield
-      @width = old_size
-    end
-
-    def verify_display(max_height, clear_size, display, height)
+    def verify_display(max_height, min_height, with_width, display, height)
       height_got = nil
 
       display_got = String.build do |io|
-        height_got = self.display_entries(io, false, max_height, clear_size)
+        height_got = self.display_entries(io, color?: false, width: with_width, max_height: max_height, min_height: min_height)
       end
       display_got.should eq display
       height_got.should eq height
       (display_got.split("\n").size - 1).should eq height
     end
 
-    def verify_display(max_height, display, height)
-      verify_display(max_height, 0, display, height)
+    def verify_display(max_height, with_width, display, height)
+      verify_display(max_height, 0, with_width, display, height)
     end
   end
 

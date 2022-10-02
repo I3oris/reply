@@ -76,6 +76,12 @@ module Reply
     getter x = 0
     getter y = 0
 
+    # The editor height, if not set (`nil`), equal to term height.
+    setter height : Int32? = nil
+
+    # The editor width, if not set (`nil`), equal to term width.
+    setter width : Int32? = nil
+
     @prompt : Int32, Bool -> String
     @prompt_size : Int32
 
@@ -260,19 +266,29 @@ module Reply
     #
     # e.g. here "ooooooooong".size = 10
     private def last_part_size(line_size)
-      (@prompt_size + line_size) % Term::Size.width
+      (@prompt_size + line_size) % self.width
     end
 
     # Returns the height of this line, (1 on common lines, more on wrapped lines):
     private def line_height(line)
-      1 + (@prompt_size + line.size) // Term::Size.width
+      1 + (@prompt_size + line.size) // self.width
+    end
+
+    # The editor width, if not set (`nil`), equal to term width.
+    def width
+      @width || Term::Size.width
+    end
+
+    # The editor height, if not set (`nil`), equal to term height.
+    def height
+      @height || Term::Size.height
     end
 
     # Returns the max height that could take an expression on screen.
     #
-    # Expression can scroll if it's higher than max_height.
-    private def max_height
-      Term::Size.height - @header_height
+    # The expression scrolls if it's higher than epression_max_height.
+    private def epression_max_height
+      self.height - @header_height
     end
 
     def move_cursor_left(allow_scrolling = true)
@@ -313,7 +329,7 @@ module Reply
         # ```
         if last_part_size(@x) == 0
           scroll_up_if_needed if allow_scrolling
-          move_real_cursor(x: Term::Size.width + 1, y: -1)
+          move_real_cursor(x: self.width + 1, y: -1)
         else
           move_real_cursor(x: -1, y: 0)
         end
@@ -357,10 +373,10 @@ module Reply
         # prompt>  bar
         # prompt>end
         # ```
-        if last_part_size(@x) == (Term::Size.width - 1)
+        if last_part_size(@x) == (self.width - 1)
           scroll_down_if_needed if allow_scrolling
 
-          move_real_cursor(x: -Term::Size.width, y: +1)
+          move_real_cursor(x: -self.width, y: +1)
         else
           move_real_cursor(x: +1, y: 0)
         end
@@ -373,8 +389,8 @@ module Reply
     def move_cursor_up
       scroll_up_if_needed
 
-      if (@prompt_size + @x) >= Term::Size.width
-        if @x >= Term::Size.width
+      if (@prompt_size + @x) >= self.width
+        if @x >= self.width
           # Here, we have:
           # ```
           # prompt>def *very_looo
@@ -387,7 +403,7 @@ module Reply
           # and move back @x by term-width.
           #
           move_real_cursor(x: 0, y: -1)
-          move_cursor(x: -Term::Size.width, y: 0)
+          move_cursor(x: -self.width, y: 0)
         else
           # Here, we have:
           # ```
@@ -398,7 +414,7 @@ module Reply
           # prompt>end
           # ```
           #
-          move_real_cursor(x: Term::Size.width - @x, y: -1)
+          move_real_cursor(x: self.width - @x, y: -1)
           move_cursor(x: 0 - @x, y: 0)
         end
 
@@ -446,7 +462,7 @@ module Reply
 
       if remaining > size_of_last_part
         # on middle
-        if remaining > Term::Size.width
+        if remaining > self.width
           # Here, there are enough remaining to just move down
           # ```
           # prompt>def very|_loooo
@@ -457,7 +473,7 @@ module Reply
           # ```
           #
           move_real_cursor(x: 0, y: +1)
-          move_cursor(x: Term::Size.width, y: 0)
+          move_cursor(x: self.width, y: 0)
         else
           # Here, we goes to end of current line:
           # ```
@@ -627,7 +643,7 @@ module Reply
     end
 
     def scroll_up
-      if @scroll_offset < expression_height() - max_height()
+      if @scroll_offset < expression_height() - epression_max_height()
         @scroll_offset += 1
         update
       end
@@ -675,7 +691,7 @@ module Reply
     end
 
     protected def expression_scrolled?
-      expression_height() > max_height()
+      expression_height() > epression_max_height()
     end
 
     # Returns y-start and end positions of the expression that should be displayed on the screen.
@@ -683,7 +699,7 @@ module Reply
     private def view_bounds
       end_ = expression_height() - 1
 
-      start = {0, end_ + 1 - max_height()}.max
+      start = {0, end_ + 1 - epression_max_height()}.max
 
       @scroll_offset = @scroll_offset.clamp(0, start) # @scroll_offset could not be greater than start.
 
@@ -694,7 +710,7 @@ module Reply
 
     # Rewinds the real cursor to the beginning of the expression without changing @x/@y cursor:
     private def rewind_cursor
-      if expression_height >= Term::Size.height
+      if expression_height >= self.height
         @output.print Term::Cursor.row(1)
       else
         x_save, y_save = @x, @y
@@ -776,7 +792,7 @@ module Reply
                 print_line(io, colorized_part, line_index, line.size, prompt?: part_number == 0, first?: first, is_last_part?: part_number == line_height - 1)
                 first = false
 
-                cursor_move_x = {line.size, (part_number + 1)*Term::Size.width - @prompt_size - 1}.min
+                cursor_move_x = {line.size, (part_number + 1)*self.width - @prompt_size - 1}.min
                 cursor_move_y = line_index
               end
               y += 1
@@ -830,7 +846,7 @@ module Reply
           x += 1
         end
 
-        if x >= Term::Size.width
+        if x >= self.width
           # Wrapping: save part and create a new builder for next part
           part_builder << "\e[0m"
           parts << part_builder.to_s

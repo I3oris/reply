@@ -202,7 +202,7 @@ module Reply
       editor.verify(x: 12, y: 0)
 
       20.times { editor.move_cursor_left }
-      editor.verify(x: 0, y: 0)
+      editor.verify(x: 0, y: 0, scroll_offset: 1)
     end
 
     # Empty interpolations `#{""}` are used to better show the influence of the prompt to line wrapping. '#{""}' takes 5 characters, like the prompt used for this spec: 'p:00>'.
@@ -217,10 +217,10 @@ module Reply
       editor.move_cursor_to_begin
 
       12.times { editor.move_cursor_right }
-      editor.verify(x: 12, y: 0)
+      editor.verify(x: 12, y: 0, scroll_offset: 1)
 
       editor.move_cursor_right
-      editor.verify(x: 0, y: 1)
+      editor.verify(x: 0, y: 1, scroll_offset: 1)
 
       34.times { editor.move_cursor_right }
       editor.verify(x: 0, y: 2)
@@ -254,7 +254,7 @@ module Reply
       editor.verify(x: 12, y: 0)
 
       editor.move_cursor_up
-      editor.verify(x: 0, y: 0)
+      editor.verify(x: 0, y: 0, scroll_offset: 1)
     end
 
     # Empty interpolations `#{""}` are used to better show the influence of the prompt to line wrapping. '#{""}' takes 5 characters, like the prompt used for this spec: 'p:00>'.
@@ -269,19 +269,19 @@ module Reply
       editor.move_cursor_to_begin
 
       editor.move_cursor_down
-      editor.verify(x: 12, y: 0)
+      editor.verify(x: 12, y: 0, scroll_offset: 1)
 
       editor.move_cursor_down
-      editor.verify(x: 0, y: 1)
+      editor.verify(x: 0, y: 1, scroll_offset: 1)
 
       editor.move_cursor_down
-      editor.verify(x: 15, y: 1)
+      editor.verify(x: 15, y: 1, scroll_offset: 1)
 
       editor.move_cursor_down
-      editor.verify(x: 30, y: 1)
+      editor.verify(x: 30, y: 1, scroll_offset: 1)
 
       editor.move_cursor_down
-      editor.verify(x: 0, y: 2)
+      editor.verify(x: 0, y: 2, scroll_offset: 0)
     end
 
     it "moves cursor to" do
@@ -334,12 +334,63 @@ module Reply
       editor.lines.should eq [""]
     end
 
+    it "ends editing" do
+      editor = SpecHelper.expression_editor
+      editor << "aaa"
+
+      editor.end_editing
+      editor.verify("aaa", x: 3, y: 0)
+
+      editor.end_editing(["aaa", "bbb", "ccc"])
+      editor.verify("aaa\nbbb\nccc", x: 3, y: 2)
+    end
+
+    it "prompts next" do
+      editor = SpecHelper.expression_editor
+      editor << "aaa"
+
+      editor.prompt_next
+      editor.verify("", x: 0, y: 0)
+    end
+
+    it "scroll up and down" do
+      editor = SpecHelper.expression_editor
+      editor << "#{""}print :Hel" \
+                "lo\n"
+      editor << "#{""}print :Wor" \
+                "ld\n"
+      editor << "#{""}print :loo" \
+                "ooooooooooooooo" \
+                "oooooong\n"
+      editor << "#{""}:end"
+
+      4.times { editor.move_cursor_up }
+      editor.expression_height.should eq 8
+
+      editor.verify(x: 12, y: 1, scroll_offset: 0)
+
+      editor.scroll_up
+      editor.verify(x: 12, y: 1, scroll_offset: 1)
+
+      editor.scroll_down
+      editor.verify(x: 12, y: 1, scroll_offset: 0)
+
+      editor.scroll_down
+      editor.verify(x: 12, y: 1, scroll_offset: 0)
+
+      editor.scroll_up
+      editor.scroll_up
+      editor.scroll_up
+      editor.verify(x: 12, y: 1, scroll_offset: 3)
+
+      editor.scroll_up
+      editor.verify(x: 12, y: 1, scroll_offset: 3)
+
+      editor.scroll_down
+      editor.verify(x: 12, y: 1, scroll_offset: 2)
+    end
+
     # TODO:
-    # update
-    # end_editing
-    # prompt_next
-    # scroll_up
-    # scroll_down
     # header
   end
 end

@@ -44,13 +44,14 @@ module Reply
       self.expression.should eq expression
     end
 
-    def verify(x : Int32, y : Int32)
+    def verify(x : Int32, y : Int32, scroll_offset = 0)
       {self.x, self.y}.should eq({x, y})
+      @scroll_offset.should eq scroll_offset
     end
 
-    def verify(expression : String, x : Int32, y : Int32)
+    def verify(expression : String, x : Int32, y : Int32, scroll_offset = 0)
       self.verify(expression)
-      self.verify(x, y)
+      self.verify(x, y, scroll_offset)
     end
 
     def verify_output(output)
@@ -99,6 +100,8 @@ module Reply
       end
       editor.output = IO::Memory.new
       editor.color = false
+      editor.height = 5
+      editor.width = 15
       editor
     end
 

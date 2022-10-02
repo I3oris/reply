@@ -85,7 +85,7 @@ module Reply
           elsif chars[2]? == 'F'.ord # gnome terminal END
             Sequence::END
           end
-        else
+        when Nil
           Sequence::ESCAPE
         end
       when '\r'.ord, '\n'.ord

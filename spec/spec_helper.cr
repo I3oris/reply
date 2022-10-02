@@ -73,6 +73,14 @@ module Reply
     end
   end
 
+  class SpecInterface < Interface
+    def auto_complete(current_word : String, expression_before : String)
+      return "title", %w(hello world hey)
+    end
+
+    getter auto_completion
+  end
+
   module SpecHelper
     def self.auto_completion_interface(returning results)
       results = results.clone
@@ -101,6 +109,20 @@ module Reply
 
     def self.char_reader(buffer_size = 64)
       CharReader.new(buffer_size)
+    end
+
+    def self.interface
+      interface = SpecInterface.new
+      interface.output = IO::Memory.new
+      interface.color = false
+      interface.editor.height = 15
+      interface.editor.width = 30
+      interface
+    end
+
+    def self.send(io, value)
+      io << value
+      Fiber.yield
     end
   end
 end

@@ -1,7 +1,8 @@
 # REPLy
 
 REPLy is a shard to create REPL interface: (Read Eval Print Loop).
-It handles the `Read` & `Print` part of the `Loop`.
+
+It handles the `Read` & `Print` part of the `Loop`, and can be a alternative to [readline](https://github.com/crystal-lang/crystal-readline).
 
 ## Features
 
@@ -83,7 +84,7 @@ class MyInterface < Reply::Interface
     # Return whether the expression is saved in history
   end
 
-  def auto_complete(name_filter : String, expression : String) : {Array(String), String}
+  def auto_complete(name_filter : String, expression : String) : {String, Array(String)}
     # Return the auto-completion result from expression
   end
 end

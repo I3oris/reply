@@ -21,10 +21,10 @@ RESULTS = {
 }
 
 module Reply
-  describe AutoCompletionInterface do
+  describe AutoCompletion do
     describe "displays entries" do
       it "for many entries" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 5,
@@ -38,7 +38,7 @@ module Reply
       end
 
       it "for many entries with larger screen" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 5,
@@ -60,7 +60,7 @@ module Reply
       end
 
       it "for many entries with higher screen" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 5,
@@ -83,7 +83,7 @@ module Reply
       end
 
       it "for few entries" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("ab", "42.")
         handler.open
         handler.verify_display max_height: 5,
@@ -95,7 +95,7 @@ module Reply
       end
 
       it "when closed" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.close
         handler.verify_display max_height: 5,
@@ -105,7 +105,7 @@ module Reply
       end
 
       it "when cleared" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.clear
         handler.verify_display max_height: 5, min_height: 3,
@@ -123,7 +123,7 @@ module Reply
       end
 
       it "when max height is zero" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 0,
@@ -133,7 +133,7 @@ module Reply
       end
 
       it "for no entry" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("___nop___", "42.")
         handler.open
         handler.verify_display max_height: 5,
@@ -145,7 +145,7 @@ module Reply
 
     describe "moves selection" do
       it "selection next" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 4,
@@ -176,7 +176,7 @@ module Reply
       end
 
       it "selection next on next column" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         6.times { handler.selection_next }
@@ -199,7 +199,7 @@ module Reply
       end
 
       it "selection previous" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         2.times { handler.selection_next }
@@ -233,7 +233,7 @@ module Reply
 
     describe "name filter" do
       it "changes" do
-        handler = SpecHelper.auto_completion_interface(returning: RESULTS)
+        handler = SpecHelper.auto_completion(returning: RESULTS)
         handler.complete_on("", "42.")
         handler.open
         handler.verify_display max_height: 5,

@@ -2,7 +2,7 @@ require "spec"
 require "../src/reply"
 
 module Reply
-  class AutoCompletionInterface
+  class AutoCompletion
     def verify(open, entries = [] of String, name_filter = "", cleared = false, selection_pos = nil)
       self.open?.should eq open
       self.cleared?.should eq cleared
@@ -73,7 +73,7 @@ module Reply
     end
   end
 
-  class SpecInterface < Interface
+  class SpecReader < Reader
     def auto_complete(current_word : String, expression_before : String)
       return "title", %w(hello world hey)
     end
@@ -82,9 +82,9 @@ module Reply
   end
 
   module SpecHelper
-    def self.auto_completion_interface(returning results)
+    def self.auto_completion(returning results)
       results = results.clone
-      AutoCompletionInterface.new do
+      AutoCompletion.new do
         results
       end
     end
@@ -111,13 +111,13 @@ module Reply
       CharReader.new(buffer_size)
     end
 
-    def self.interface
-      interface = SpecInterface.new
-      interface.output = IO::Memory.new
-      interface.color = false
-      interface.editor.height = 15
-      interface.editor.width = 30
-      interface
+    def self.reader
+      reader = SpecReader.new
+      reader.output = IO::Memory.new
+      reader.color = false
+      reader.editor.height = 15
+      reader.editor.width = 30
+      reader
     end
 
     def self.send(io, value)

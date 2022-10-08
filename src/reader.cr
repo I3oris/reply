@@ -1,15 +1,15 @@
 require "./history"
 require "./expression_editor"
 require "./char_reader"
-require "./auto_completion_interface"
+require "./auto_completion"
 
 module Reply
-  # Interface for your REPL.
+  # Reader for your REPL.
   #
   # Create a subclass of it and override methods to customize behavior.
   #
   # ```
-  # class MyInterface < Reply::Interface
+  # class MyReader < Reply::Reader
   #   def prompt(io, line_number, color?)
   #     io << "reply> "
   #   end
@@ -19,9 +19,9 @@ module Reply
   # Run the REPL with `run`:
   #
   # ```
-  # repl_interface = MyInterface.new
+  # reader = MyReader.new
   #
-  # repl_interface.run do |expression|
+  # reader.run do |expression|
   #   # Eval expression here
   #   puts " => #{expression}"
   # end
@@ -30,26 +30,26 @@ module Reply
   # Or with `read_next`:
   # ```
   # loop do
-  #   expression = repl_interface.read_next
+  #   expression = reader.read_next
   #   break unless expression
   #
   #   # Eval expression here
   #   puts " => #{expression}"
   # end
   # ```
-  class Interface
+  class Reader
     # General architecture:
     #
     # ```
-    # SDTIN -> CharReader -> Interface -> ExpressionEditor -> STDOUT
-    #                        ^       ^
-    #                        |       |
-    #                    History   AutoCompletion
+    # SDTIN -> CharReader -> Reader -> ExpressionEditor -> STDOUT
+    #                        ^    ^
+    #                        |    |
+    #                   History  AutoCompletion
     # ```
 
     getter history = History.new
     getter editor : ExpressionEditor
-    @auto_completion : AutoCompletionInterface
+    @auto_completion : AutoCompletion
     @char_reader = CharReader.new
     getter line_number = 1
 
@@ -62,7 +62,7 @@ module Reply
         end
       end
 
-      @auto_completion = AutoCompletionInterface.new(&->auto_complete(String, String))
+      @auto_completion = AutoCompletion.new(&->auto_complete(String, String))
       @auto_completion.set_display_title(&->auto_completion_display_title(IO, String))
       @auto_completion.set_display_entry(&->auto_completion_display_entry(IO, String, String))
       @auto_completion.set_display_selected_entry(&->auto_completion_display_selected_entry(IO, String))
@@ -221,7 +221,7 @@ module Reply
       end
     end
 
-    def run(& : String -> _)
+    def read_loop(& : String -> _)
       loop do
         yield read_next || break
       end

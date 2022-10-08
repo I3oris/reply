@@ -1,11 +1,11 @@
 require "../src/reply"
 
-class MyInterface < Reply::Interface
+class MyReader < Reply::Reader
 end
 
-repl_interface = MyInterface.new
+reader = MyReader.new
 
-repl_interface.run do |expression|
+reader.read_loop do |expression|
   # Eval expression here
   puts " => #{expression}"
 end

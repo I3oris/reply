@@ -43,8 +43,8 @@ NOTE: REPLy was extracted from https://github.com/I3oris/ic, it was first design
 ```crystal
 require "reply"
 
-repl_interface = Reply::Interface.new
-repl_interface.run do |expression|
+reader = Reply::Reader.new
+reader.read_loop do |expression|
   # Eval expression here
   puts " => #{expression}"
 end
@@ -55,7 +55,7 @@ end
 ```crystal
 require "../src/reply"
 
-class MyInterface < Reply::Interface
+class MyReader < Reply::Reader
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
     # Display a custom prompt
   end

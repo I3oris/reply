@@ -41,7 +41,7 @@ CONTINUE_ERROR = [
   "unknown token: '\\u{0}'",
 ]
 
-class CrystalInterface < Reply::Interface
+class CrystalReader < Reply::Reader
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
     io << "crystal".colorize.blue.toggle(color?)
     io << ':'
@@ -109,14 +109,14 @@ class CrystalInterface < Reply::Interface
   end
 end
 
-repl_interface = CrystalInterface.new
+reader = CrystalReader.new
 
-repl_interface.run do |expression|
+reader.read_loop do |expression|
   case expression
   when "clear_history"
-    repl_interface.history.clear
+    reader.history.clear
   when "reset"
-    repl_interface.reset
+    reader.reset
   when "exit"
     break
   when .presence

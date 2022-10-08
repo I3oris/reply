@@ -1,8 +1,6 @@
 # REPLy
 
-REPLy is a shard to create REPL interface: (Read Eval Print Loop).
-
-It handles the `Read` & `Print` part of the `Loop`, and can be a alternative to [readline](https://github.com/crystal-lang/crystal-readline).
+REPLy is a shard that provide a term reader for a REPL (Read Eval Print Loop).
 
 ## Features
 
@@ -53,7 +51,7 @@ end
 ### Customize the Interface
 
 ```crystal
-require "../src/reply"
+require "reply"
 
 class MyReader < Reply::Reader
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
@@ -89,6 +87,10 @@ class MyReader < Reply::Reader
   end
 end
 ```
+
+## Similar alternatives
+* [fancyline](https://github.com/Papierkorb/fancyline)
+* [readline](https://github.com/crystal-lang/crystal-readline)
 
 ## Development
 

@@ -628,7 +628,7 @@ module Reply
       @output.puts
     end
 
-    # Clear the expression and start a new prompt on a next line.
+    # Clears the expression and start a new prompt on a next line.
     def prompt_next
       @scroll_offset = 0
       @lines = [""]

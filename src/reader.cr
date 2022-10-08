@@ -190,7 +190,9 @@ module Reply
         in String           then on_string(read)
         in .enter?          then on_enter { |line| return line }
         in .up?             then on_up
+        in .ctrl_p?         then on_up
         in .down?           then on_down
+        in .ctrl_n?         then on_down
         in .left?           then on_left
         in .right?          then on_right
         in .ctrl_up?        then on_ctrl_up { |line| return line }

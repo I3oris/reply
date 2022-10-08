@@ -16,6 +16,8 @@ module Reply
       CTRL_E
       CTRL_A
       CTRL_X
+      CTRL_N
+      CTRL_P
       CTRL_UP
       CTRL_DOWN
       CTRL_LEFT
@@ -102,6 +104,10 @@ module Reply
         Sequence::CTRL_A
       when ctrl('e')
         Sequence::CTRL_E
+      when ctrl('n')
+        Sequence::CTRL_N
+      when ctrl('p')
+        Sequence::CTRL_P
       when '\0'.ord
         Sequence::EOF
       when 0x7f

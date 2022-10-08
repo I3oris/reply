@@ -65,6 +65,37 @@ module Reply
       SpecHelper.send(pipe_in, '\0')
     end
 
+    it "uses ctrl-n & ctrl-p" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+        reader.read_next(from: pipe_out)
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, "x = 42")
+      SpecHelper.send(pipe_in, '\n')
+      SpecHelper.send(pipe_in, <<-END)
+        puts "Hello",
+          "World"
+        END
+      SpecHelper.send(pipe_in, '\n')
+
+      SpecHelper.send(pipe_in, '\u0010') # ctrl-p (up)
+      reader.editor.verify(%(puts "Hello",\n  "World"))
+
+      SpecHelper.send(pipe_in, '\u0010') # ctrl-p (up)
+      SpecHelper.send(pipe_in, '\u0010') # ctrl-p (up)
+      reader.editor.verify("x = 42")
+
+      SpecHelper.send(pipe_in, '\u000e') # ctrl-n (down)
+      reader.editor.verify(%(puts "Hello",\n  "World"))
+
+      SpecHelper.send(pipe_in, '\0')
+    end
+
     it "uses back" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

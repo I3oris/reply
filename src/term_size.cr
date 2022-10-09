@@ -5,8 +5,17 @@ lib LibC
     x_pixel : LibC::Short
     y_pixel : LibC::Short
   end
-
-  TIOCGWINSZ = 0x5413 # Magic number.
+  
+  # TIOCGWINSZ is a magic number passed to ioctl that requests the current
+  # terminal window size. It is platform dependent (see
+  # https://stackoverflow.com/a/4286840).
+  {% begin %}
+    {% if flag?(:darwin) || flag?(:bsd) %}
+      TIOCGWINSZ = 0x40087468
+    {% elsif flag?(:unix) %}
+      TIOCGWINSZ = 0x5413
+    {% end %}
+  {% end %}
 
   fun ioctl(fd : LibC::Int, request : LibC::SizeT, winsize : LibC::Winsize*) : LibC::Int
 end

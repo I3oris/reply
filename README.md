@@ -88,9 +88,9 @@ class MyReader < Reply::Reader
 end
 ```
 
-## Similar alternatives
+## Similar Project
 * [fancyline](https://github.com/Papierkorb/fancyline)
-* [readline](https://github.com/crystal-lang/crystal-readline)
+* [crystal-readline](https://github.com/crystal-lang/crystal-readline)
 
 ## Development
 

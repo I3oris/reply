@@ -39,8 +39,10 @@ module Reply
       reader.verify_read('\u0003', expect: :ctrl_c)
       reader.verify_read('\u0004', expect: :ctrl_d)
       reader.verify_read('\u0005', expect: :ctrl_e)
+      reader.verify_read('\u000b', expect: :ctrl_k)
       reader.verify_read('\u000e', expect: :ctrl_n)
       reader.verify_read('\u0010', expect: :ctrl_p)
+      reader.verify_read('\u0015', expect: :ctrl_u)
       reader.verify_read('\u0018', expect: :ctrl_x)
       reader.verify_read('\u007F', expect: :back)
     end

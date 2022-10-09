@@ -274,6 +274,55 @@ module Reply
       SpecHelper.send(pipe_in, '\u{24}') # ctrl-x
     end
 
+    it "uses ctrl-u & ctrl-k" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, <<-END)
+        Lorem ipsum
+        dolor sit
+        amet.
+        END
+      SpecHelper.send(pipe_in, '\u0010') # ctrl-p (up)
+      reader.editor.verify(x: 5, y: 1)
+
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      reader.editor.verify(<<-END, x: 5, y: 1)
+        Lorem ipsum
+        dolor
+        amet.
+        END
+
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      reader.editor.verify(<<-END, x: 5, y: 1)
+        Lorem ipsum
+        doloramet.
+        END
+
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      reader.editor.verify(<<-END, x: 0, y: 1)
+        Lorem ipsum
+        amet.
+        END
+
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      reader.editor.verify(<<-END, x: 0, y: 1)
+        Lorem ipsum
+
+        END
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      reader.editor.verify("", x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      reader.editor.verify("", x: 0, y: 0)
+    end
+
     it "resets" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

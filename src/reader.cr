@@ -207,6 +207,8 @@ module Reply
         in .alt_enter?      then on_enter(alt_enter: true) { }
         in .home?, .ctrl_a? then on_begin
         in .end?, .ctrl_e?  then on_end
+        in .ctrl_k?         then delete_after
+        in .ctrl_u?         then delete_before
         in .ctrl_c?         then on_ctrl_c
         in .eof?, .ctrl_d?, .ctrl_x?
           output.puts
@@ -399,6 +401,54 @@ module Reply
         @auto_completion.name_filter = self.current_word[...-1]
       else
         @auto_completion.clear
+      end
+    end
+
+    def move_word_forward
+      # TODO Alt-f
+    end
+
+    def move_word_backward
+      # TODO Alt-b
+    end
+
+    def delete_char
+      # TODO Ctrl-d
+    end
+
+    def delete_word
+      # TODO Alt-d
+    end
+
+    def back
+      # TODO backspace
+    end
+
+    def word_back
+      # TODO Alt-backspace
+    end
+
+    def delete_after
+      x = @editor.x
+      if x == @editor.current_line.size
+        @editor.update { @editor.delete }
+      elsif !@editor.current_line.empty?
+        editor.update do
+          @editor.current_line = @editor.current_line[...x]
+        end
+      end
+    end
+
+    def delete_before
+      x = @editor.x
+      if x == 0
+        @editor.update { @editor.back }
+      elsif !@editor.current_line.empty?
+        @editor.update do
+          @editor.current_line = @editor.current_line[x..]
+        end
+
+        @editor.move_cursor_to(x: 0, y: @editor.y)
       end
     end
 

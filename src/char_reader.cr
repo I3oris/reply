@@ -11,13 +11,15 @@ module Reply
       ESCAPE
       DELETE
       BACK
+      CTRL_A
       CTRL_C
       CTRL_D
       CTRL_E
-      CTRL_A
-      CTRL_X
+      CTRL_K
       CTRL_N
       CTRL_P
+      CTRL_U
+      CTRL_X
       CTRL_UP
       CTRL_DOWN
       CTRL_LEFT
@@ -94,20 +96,24 @@ module Reply
         Sequence::ENTER
       when '\t'.ord
         Sequence::TAB
+      when ctrl('a')
+        Sequence::CTRL_A
       when ctrl('c')
         Sequence::CTRL_C
       when ctrl('d')
         Sequence::CTRL_D
-      when ctrl('x')
-        Sequence::CTRL_X
-      when ctrl('a')
-        Sequence::CTRL_A
       when ctrl('e')
         Sequence::CTRL_E
+      when ctrl('k')
+        Sequence::CTRL_K
       when ctrl('n')
         Sequence::CTRL_N
       when ctrl('p')
         Sequence::CTRL_P
+      when ctrl('u')
+        Sequence::CTRL_U
+      when ctrl('x')
+        Sequence::CTRL_X
       when '\0'.ord
         Sequence::EOF
       when 0x7f

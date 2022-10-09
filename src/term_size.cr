@@ -5,7 +5,7 @@ lib LibC
     x_pixel : LibC::Short
     y_pixel : LibC::Short
   end
-  
+
   # TIOCGWINSZ is a magic number passed to ioctl that requests the current
   # terminal window size. It is platform dependent (see
   # https://stackoverflow.com/a/4286840).

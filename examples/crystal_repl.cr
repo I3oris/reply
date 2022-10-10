@@ -72,7 +72,7 @@ class CrystalReader < Reply::Reader
   end
 
   def word_delimiters : Regex
-    # `"`, `:`, `'`, are not a delimiter because symbols and strings should be treated as one word.
+    # `"`, `:`, `'`, are not a delimiter because symbols and strings are treated as one word.
     # '=', !', '?' are not a delimiter because they could make part of method name.
     /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~]/
   end

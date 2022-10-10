@@ -290,37 +290,121 @@ module Reply
       SpecHelper.send(pipe_in, '\u0010') # ctrl-p (up)
       reader.editor.verify(x: 5, y: 1)
 
-      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k (delete after)
       reader.editor.verify(<<-END, x: 5, y: 1)
         Lorem ipsum
         dolor
         amet.
         END
 
-      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k (delete after)
       reader.editor.verify(<<-END, x: 5, y: 1)
         Lorem ipsum
         doloramet.
         END
 
-      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u (delete before)
       reader.editor.verify(<<-END, x: 0, y: 1)
         Lorem ipsum
         amet.
         END
 
-      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k (delete after)
       reader.editor.verify(<<-END, x: 0, y: 1)
         Lorem ipsum
 
         END
-      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
-      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u (delete before)
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u (delete before)
       reader.editor.verify("", x: 0, y: 0)
 
-      SpecHelper.send(pipe_in, '\u000b') # ctrl-k
-      SpecHelper.send(pipe_in, '\u0015') # ctrl-u
+      SpecHelper.send(pipe_in, '\u000b') # ctrl-k (delete after)
+      SpecHelper.send(pipe_in, '\u0015') # ctrl-u (delete before)
       reader.editor.verify("", x: 0, y: 0)
+    end
+
+    it "moves word forward" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, <<-END)
+        lorem   ipsum
+        +"dolor", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, '\u0001') # ctrl-a (move cursor to begin)
+      reader.editor.verify(x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, "\ef") # Alt-f (move_word_forward)
+      reader.editor.verify(x: 5, y: 0)
+
+      SpecHelper.send(pipe_in, "\ef") # Alt-f (move_word_forward)
+      reader.editor.verify(x: 13, y: 0)
+
+      SpecHelper.send(pipe_in, "\e[1;5C") # Ctrl-right (move_word_forward)
+      reader.editor.verify(x: 7, y: 1)
+
+      SpecHelper.send(pipe_in, "\e[1;5C") # Ctrl-right (move_word_forward)
+      reader.editor.verify(x: 13, y: 1)
+
+      SpecHelper.send(pipe_in, "\e[1;5C") # Ctrl-right (move_word_forward)
+      reader.editor.verify(x: 14, y: 1)
+
+      SpecHelper.send(pipe_in, "\ef") # Alt-f (move_word_forward)
+      reader.editor.verify(x: 4, y: 2)
+
+      SpecHelper.send(pipe_in, "\ef") # Alt-f (move_word_forward)
+      reader.editor.verify(x: 6, y: 2)
+
+      SpecHelper.send(pipe_in, "\ef") # Alt-f (move_word_forward)
+      reader.editor.verify(x: 6, y: 2)
+
+      SpecHelper.send(pipe_in, "\0")
+    end
+
+    it "moves word backward" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, <<-END)
+        lorem   ipsum
+        +"dolor", sit:
+        amet()
+        END
+
+      reader.editor.verify(x: 6, y: 2)
+
+      SpecHelper.send(pipe_in, "\eb") # Alt-b (move_word_backward)
+      reader.editor.verify(x: 0, y: 2)
+
+      SpecHelper.send(pipe_in, "\eb") # Alt-b (move_word_backward)
+      reader.editor.verify(x: 10, y: 1)
+
+      SpecHelper.send(pipe_in, "\e[1;5D") # Ctrl-left (move_word_backward)
+      reader.editor.verify(x: 2, y: 1)
+
+      SpecHelper.send(pipe_in, "\e[1;5D") # Ctrl-left (move_word_backward)
+      reader.editor.verify(x: 0, y: 1)
+
+      SpecHelper.send(pipe_in, "\e[1;5D") # Ctrl-left (move_word_backward)
+      reader.editor.verify(x: 8, y: 0)
+
+      SpecHelper.send(pipe_in, "\eb") # Alt-b (move_word_backward)
+      reader.editor.verify(x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, "\eb") # Alt-b (move_word_backward)
+      reader.editor.verify(x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, "\0")
     end
 
     it "resets" do

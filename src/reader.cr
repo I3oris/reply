@@ -115,10 +115,9 @@ module Reply
 
     # Override this method to return the regex delimiting words.
     #
-    # default: `/[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/`
+    # default: `/[ \n\t\+\-\*\/,;@&%<>"'\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/`
     def word_delimiters
-      # `"`, `'`, are not considered as delimiter
-      /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/
+      /[ \n\t\+\-\*\/,;@&%<>"'\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/
     end
 
     # Override to select with expression is saved in history.
@@ -209,6 +208,8 @@ module Reply
         in .end?, .ctrl_e?  then on_end
         in .ctrl_k?         then delete_after
         in .ctrl_u?         then delete_before
+        in .alt_f?          then move_word_forward
+        in .alt_b?          then move_word_backward
         in .ctrl_c?         then on_ctrl_c
         in .eof?, .ctrl_d?, .ctrl_x?
           output.puts
@@ -316,13 +317,11 @@ module Reply
     end
 
     private def on_ctrl_left(& : String ->)
-      # TODO: move one word backward
-      @editor.move_cursor_left
+      move_word_backward
     end
 
     private def on_ctrl_right(& : String ->)
-      # TODO: move one word forward
-      @editor.move_cursor_right
+      move_word_forward
     end
 
     private def on_delete
@@ -405,11 +404,17 @@ module Reply
     end
 
     def move_word_forward
-      # TODO Alt-f
+      @editor.move_cursor_right if @editor.x == @editor.current_line.size
+
+      word_end = self.next_word_end
+      @editor.move_cursor_to(x: word_end + 1, y: @editor.y)
     end
 
     def move_word_backward
-      # TODO Alt-b
+      @editor.move_cursor_left if @editor.x == 0
+
+      word_begin = self.previous_word_begin
+      @editor.move_cursor_to(x: word_begin, y: @editor.y)
     end
 
     def delete_char
@@ -452,12 +457,40 @@ module Reply
       end
     end
 
-    # Returns begin and end of the word under the cursor.
-    private def current_word_begin_end
+    private def next_word_end
       x = @editor.x
-      line = @editor.current_line
-      word_begin = line.rindex(self.word_delimiters, offset: {x - 1, 0}.max) || -1
-      word_end = line.index(self.word_delimiters, offset: x) || line.size
+      while word_char?(x) == false
+        x += 1
+      end
+
+      while word_char?(x)
+        x += 1
+      end
+      x - 1
+    end
+
+    private def previous_word_begin
+      x = @editor.x - 1
+      while word_char?(x) == false
+        x -= 1
+      end
+
+      while word_char?(x)
+        x -= 1
+      end
+      x + 1
+    end
+
+    private def current_word_begin_end(x = @editor.x)
+      word_begin = {x - 1, 0}.max
+      word_end = x
+      while word_char?(word_begin)
+        word_begin -= 1
+      end
+
+      while word_char?(word_end)
+        word_end += 1
+      end
 
       {word_begin + 1, word_end - 1}
     end

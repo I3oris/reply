@@ -30,6 +30,8 @@ module Reply
 
       reader.verify_read("\e\t", expect: :shift_tab)
       reader.verify_read("\e\r", expect: :alt_enter)
+      reader.verify_read("\eb", expect: :alt_b)
+      reader.verify_read("\ef", expect: :alt_f)
       reader.verify_read("\e", expect: :escape)
       reader.verify_read("\n", expect: :enter)
       reader.verify_read("\t", expect: :tab)

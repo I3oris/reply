@@ -7,7 +7,6 @@ module Reply
       RIGHT
       LEFT
       ENTER
-      ALT_ENTER
       ESCAPE
       DELETE
       BACK
@@ -24,6 +23,9 @@ module Reply
       CTRL_DOWN
       CTRL_LEFT
       CTRL_RIGHT
+      ALT_B
+      ALT_F
+      ALT_ENTER
       TAB
       SHIFT_TAB
       HOME
@@ -89,6 +91,10 @@ module Reply
           elsif chars[2]? == 'F'.ord # gnome terminal END
             Sequence::END
           end
+        when 'b'
+          Sequence::ALT_B
+        when 'f'
+          Sequence::ALT_F
         when Nil
           Sequence::ESCAPE
         end

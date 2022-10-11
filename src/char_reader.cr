@@ -11,9 +11,11 @@ module Reply
       DELETE
       BACKSPACE
       CTRL_A
+      CTRL_B
       CTRL_C
       CTRL_D
       CTRL_E
+      CTRL_F
       CTRL_K
       CTRL_N
       CTRL_P
@@ -118,12 +120,16 @@ module Reply
         Sequence::CTRL_BACKSPACE
       when ctrl('a')
         Sequence::CTRL_A
+      when ctrl('b')
+        Sequence::CTRL_B
       when ctrl('c')
         Sequence::CTRL_C
       when ctrl('d')
         Sequence::CTRL_D
       when ctrl('e')
         Sequence::CTRL_E
+      when ctrl('f')
+        Sequence::CTRL_F
       when ctrl('k')
         Sequence::CTRL_K
       when ctrl('n')

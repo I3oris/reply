@@ -96,6 +96,37 @@ module Reply
       SpecHelper.send(pipe_in, '\0')
     end
 
+    it "uses ctrl-f & ctrl-b" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, "x=42")
+      reader.editor.verify(x: 4, y: 0)
+
+      SpecHelper.send(pipe_in, '\u0006') # ctrl-f (right)
+      reader.editor.verify(x: 4, y: 0)
+
+      SpecHelper.send(pipe_in, '\u0002') # ctrl-b (left)
+      reader.editor.verify(x: 3, y: 0)
+
+      SpecHelper.send(pipe_in, '\u0002') # ctrl-b (left)
+      SpecHelper.send(pipe_in, '\u0002') # ctrl-b (left)
+      SpecHelper.send(pipe_in, '\u0002') # ctrl-b (left)
+      reader.editor.verify(x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, '\u0002') # ctrl-b (left)
+      reader.editor.verify(x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, '\u0006') # ctrl-f (right)
+      reader.editor.verify(x: 1, y: 0)
+
+      SpecHelper.send(pipe_in, '\0')
+    end
+
     it "uses back" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

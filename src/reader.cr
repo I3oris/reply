@@ -193,7 +193,9 @@ module Reply
         in .down?           then on_down
         in .ctrl_n?         then on_down
         in .left?           then on_left
+        in .ctrl_b?         then on_left
         in .right?          then on_right
+        in .ctrl_f?         then on_right
         in .ctrl_up?        then on_ctrl_up { |line| return line }
         in .ctrl_down?      then on_ctrl_down { |line| return line }
         in .ctrl_left?      then on_ctrl_left { |line| return line }

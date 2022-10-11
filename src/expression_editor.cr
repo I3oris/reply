@@ -140,6 +140,10 @@ module Reply
       @lines[@y + 1]?
     end
 
+    def empty?
+      @lines.empty? || (@lines.size == 1 && @lines.first.empty?)
+    end
+
     def cursor_on_last_line?
       (@y == @lines.size - 1)
     end

@@ -198,16 +198,16 @@ module Reply
         in .ctrl_down?      then on_ctrl_down { |line| return line }
         in .ctrl_left?      then on_ctrl_left { |line| return line }
         in .ctrl_right?     then on_ctrl_right { |line| return line }
-        in .delete?         then on_delete
-        in .backspace?      then on_back
         in .tab?            then on_tab
         in .shift_tab?      then on_tab(shift_tab: true)
         in .escape?         then on_escape
         in .alt_enter?      then on_enter(alt_enter: true) { }
         in .alt_backspace?  then word_back
         in .ctrl_backspace? then word_back
+        in .backspace?      then char_back
         in .home?, .ctrl_a? then on_begin
         in .end?, .ctrl_e?  then on_end
+        in .delete?         then delete_char
         in .ctrl_k?         then delete_after
         in .ctrl_u?         then delete_before
         in .alt_f?          then move_word_forward
@@ -215,7 +215,14 @@ module Reply
         in .ctrl_delete?    then delete_word
         in .alt_d?          then delete_word
         in .ctrl_c?         then on_ctrl_c
-        in .eof?, .ctrl_d?, .ctrl_x?
+        in .ctrl_d?
+          if @editor.empty?
+            output.puts
+            return nil
+          else
+            delete_char
+          end
+        in .eof?, .ctrl_x?
           output.puts
           return nil
         end
@@ -302,11 +309,6 @@ module Reply
       @editor.move_cursor_right
     end
 
-    private def on_back
-      auto_complete_remove_char if @auto_completion.open?
-      @editor.update { back }
-    end
-
     # If overridden, can yield an expression to giveback to `run`.
     # This is made because the `PryInterface` in `IC` can override these hotkeys and yield
     # command like `step`/`next`.
@@ -326,10 +328,6 @@ module Reply
 
     private def on_ctrl_right(& : String ->)
       move_word_forward
-    end
-
-    private def on_delete
-      @editor.update { delete }
     end
 
     private def on_ctrl_c
@@ -422,7 +420,7 @@ module Reply
     end
 
     def delete_char
-      # TODO Ctrl-d
+      @editor.update { delete }
     end
 
     def delete_word
@@ -437,13 +435,15 @@ module Reply
       end
     end
 
-    def back
-      # TODO backspace
+    def char_back
+      # Alt-d
+      auto_complete_remove_char if @auto_completion.open?
+      @editor.update { back }
     end
 
     def word_back
       if @editor.x == 0
-        editor.update { @editor.back }
+        editor.update { back }
       end
 
       line = @editor.current_line
@@ -471,7 +471,7 @@ module Reply
     def delete_before
       x = @editor.x
       if x == 0
-        @editor.update { @editor.back }
+        @editor.update { back }
       elsif !@editor.current_line.empty?
         @editor.update do
           @editor.current_line = @editor.current_line[x..]

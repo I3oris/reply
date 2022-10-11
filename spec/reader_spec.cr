@@ -154,6 +154,33 @@ module Reply
       SpecHelper.send(pipe_in, '\n')
     end
 
+    it "deletes or eof" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      channel = Channel(Symbol).new
+      spawn do
+        reader.read_next(from: pipe_out).should be_nil
+        channel.send(:finished)
+      end
+
+      SpecHelper.send(pipe_in, "a\nb")
+      SpecHelper.send(pipe_in, '\u0001') # ctrl-a (move cursor to begin)
+      reader.editor.verify("a\nb")
+
+      SpecHelper.send(pipe_in, '\u0004') # ctrl-d (delete or eof)
+      reader.editor.verify("\nb")
+
+      SpecHelper.send(pipe_in, '\u0004') # ctrl-d (delete or eof)
+      reader.editor.verify("b")
+
+      SpecHelper.send(pipe_in, '\u0004') # ctrl-d (delete or eof)
+      reader.editor.verify("")
+
+      SpecHelper.send(pipe_in, '\u0004') # ctrl-d (delete or eof)
+      channel.receive.should eq :finished
+    end
+
     it "uses tabulation" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

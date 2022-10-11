@@ -9,7 +9,7 @@ module Reply
       ENTER
       ESCAPE
       DELETE
-      BACK
+      BACKSPACE
       CTRL_A
       CTRL_C
       CTRL_D
@@ -23,9 +23,13 @@ module Reply
       CTRL_DOWN
       CTRL_LEFT
       CTRL_RIGHT
+      CTRL_DELETE
+      CTRL_BACKSPACE
       ALT_B
+      ALT_D
       ALT_F
       ALT_ENTER
+      ALT_BACKSPACE
       TAB
       SHIFT_TAB
       HOME
@@ -58,7 +62,11 @@ module Reply
           when 'D'.ord then Sequence::LEFT
           when 'Z'.ord then Sequence::SHIFT_TAB
           when '3'.ord
-            if chars[3]? == '~'.ord
+            if {chars[3]?, chars[4]?} == {';'.ord, '5'.ord}
+              case chars[5]?
+              when '~'.ord then Sequence::CTRL_DELETE
+              end
+            elsif chars[3]? == '~'.ord
               Sequence::DELETE
             end
           when '1'.ord
@@ -85,6 +93,8 @@ module Reply
           Sequence::SHIFT_TAB
         when '\r'.ord
           Sequence::ALT_ENTER
+        when 0x7f
+          Sequence::ALT_BACKSPACE
         when 'O'.ord
           if chars[2]? == 'H'.ord # gnome terminal HOME
             Sequence::HOME
@@ -93,6 +103,8 @@ module Reply
           end
         when 'b'
           Sequence::ALT_B
+        when 'd'
+          Sequence::ALT_D
         when 'f'
           Sequence::ALT_F
         when Nil
@@ -102,6 +114,8 @@ module Reply
         Sequence::ENTER
       when '\t'.ord
         Sequence::TAB
+      when '\b'.ord
+        Sequence::CTRL_BACKSPACE
       when ctrl('a')
         Sequence::CTRL_A
       when ctrl('c')
@@ -123,7 +137,7 @@ module Reply
       when '\0'.ord
         Sequence::EOF
       when 0x7f
-        Sequence::BACK
+        Sequence::BACKSPACE
       else
         if chars.size == 1
           chars[0].chr

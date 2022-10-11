@@ -407,6 +407,69 @@ module Reply
       SpecHelper.send(pipe_in, "\0")
     end
 
+    it "uses delete word and word back" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, <<-END)
+        lorem   ipsum
+        +"dolor", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, "\e[A") # up
+      reader.editor.verify(x: 6, y: 1)
+
+      SpecHelper.send(pipe_in, '\b') # Ctrl-backspace (delete_word)
+      reader.editor.verify(<<-END, x: 2, y: 1)
+        lorem   ipsum
+        +"r", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, '\b') # Ctrl-backspace (delete_word)
+      reader.editor.verify(<<-END, x: 0, y: 1)
+        lorem   ipsum
+        r", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, '\b') # Ctrl-backspace (delete_word)
+      reader.editor.verify(<<-END, x: 8, y: 0)
+        lorem   r", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
+      reader.editor.verify(<<-END, x: 8, y: 0)
+        lorem   ", sit:
+        amet()
+        END
+
+      SpecHelper.send(pipe_in, "\ed")     # Alt-d (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
+      reader.editor.verify(<<-END, x: 8, y: 0)
+        lorem   ()
+        END
+
+      SpecHelper.send(pipe_in, '\b')       # Ctrl-backspace (delete_word)
+      SpecHelper.send(pipe_in, "\e\u007f") # Alt-backspace (delete_word)
+      reader.editor.verify(<<-END, x: 0, y: 0)
+        ()
+        END
+
+      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
+      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
+      reader.editor.verify("", x: 0, y: 0)
+
+      SpecHelper.send(pipe_in, "\0")
+    end
+
     it "resets" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

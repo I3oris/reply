@@ -199,24 +199,28 @@ module Reply
         in .ctrl_left?      then on_ctrl_left { |line| return line }
         in .ctrl_right?     then on_ctrl_right { |line| return line }
         in .delete?         then on_delete
-        in .back?           then on_back
+        in .backspace?      then on_back
         in .tab?            then on_tab
         in .shift_tab?      then on_tab(shift_tab: true)
         in .escape?         then on_escape
         in .alt_enter?      then on_enter(alt_enter: true) { }
+        in .alt_backspace?  then word_back
+        in .ctrl_backspace? then word_back
         in .home?, .ctrl_a? then on_begin
         in .end?, .ctrl_e?  then on_end
         in .ctrl_k?         then delete_after
         in .ctrl_u?         then delete_before
         in .alt_f?          then move_word_forward
         in .alt_b?          then move_word_backward
+        in .ctrl_delete?    then delete_word
+        in .alt_d?          then delete_word
         in .ctrl_c?         then on_ctrl_c
         in .eof?, .ctrl_d?, .ctrl_x?
           output.puts
           return nil
         end
 
-        if read.is_a?(CharReader::Sequence) && (read.tab? || read.enter? || read.alt_enter? || read.shift_tab? || read.escape? || read.back? || read.ctrl_c?)
+        if read.is_a?(CharReader::Sequence) && (read.tab? || read.enter? || read.alt_enter? || read.shift_tab? || read.escape? || read.backspace? || read.ctrl_c?)
         else
           if @auto_completion.open?
             auto_complete_insert_char(read)
@@ -422,7 +426,15 @@ module Reply
     end
 
     def delete_word
-      # TODO Alt-d
+      editor.update do
+        @editor.delete if @editor.x == @editor.current_line.size
+
+        line = @editor.current_line
+        x = @editor.x
+
+        word_end = self.next_word_end
+        @editor.current_line = line[...x] + line[(word_end + 1)..]
+      end
     end
 
     def back
@@ -430,7 +442,19 @@ module Reply
     end
 
     def word_back
-      # TODO Alt-backspace
+      if @editor.x == 0
+        editor.update { @editor.back }
+      end
+
+      line = @editor.current_line
+      x = @editor.x
+
+      word_begin = self.previous_word_begin
+      @editor.move_cursor_to(x: word_begin, y: @editor.y)
+
+      editor.update do
+        @editor.current_line = line[...word_begin] + line[x..]
+      end
     end
 
     def delete_after

@@ -17,6 +17,7 @@ module Reply
       reader.verify_read("\e[C", expect: :right)
       reader.verify_read("\e[D", expect: :left)
       reader.verify_read("\e[3~", expect: :delete)
+      reader.verify_read("\e[3;5~", expect: :ctrl_delete)
       reader.verify_read("\e[1;5A", expect: :ctrl_up)
       reader.verify_read("\e[1;5B", expect: :ctrl_down)
       reader.verify_read("\e[1;5C", expect: :ctrl_right)
@@ -30,13 +31,19 @@ module Reply
 
       reader.verify_read("\e\t", expect: :shift_tab)
       reader.verify_read("\e\r", expect: :alt_enter)
+      reader.verify_read("\e\u007f", expect: :alt_backspace)
       reader.verify_read("\eb", expect: :alt_b)
+      reader.verify_read("\ed", expect: :alt_d)
       reader.verify_read("\ef", expect: :alt_f)
       reader.verify_read("\e", expect: :escape)
       reader.verify_read("\n", expect: :enter)
       reader.verify_read("\t", expect: :tab)
 
       reader.verify_read('\0', expect: [] of CharReader::Sequence)
+      reader.verify_read('\t', expect: :tab)
+      reader.verify_read('\n', expect: :enter)
+      reader.verify_read('\b', expect: :ctrl_backspace)
+      reader.verify_read('\u007F', expect: :backspace)
       reader.verify_read('\u0001', expect: :ctrl_a)
       reader.verify_read('\u0003', expect: :ctrl_c)
       reader.verify_read('\u0004', expect: :ctrl_d)
@@ -46,7 +53,6 @@ module Reply
       reader.verify_read('\u0010', expect: :ctrl_p)
       reader.verify_read('\u0015', expect: :ctrl_u)
       reader.verify_read('\u0018', expect: :ctrl_x)
-      reader.verify_read('\u007F', expect: :back)
     end
 
     it "read large buffer" do

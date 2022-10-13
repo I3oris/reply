@@ -91,6 +91,11 @@ module Reply
     @header : IO, Int32 -> Int32 = ->(io : IO, previous_height : Int32) { 0 }
     @highlight = ->(code : String) { code }
 
+    # The list of characters delimiting words.
+    #
+    # default: ` \n\t+-*/,;@&%<>"'^\\[](){}|.~:=!?`
+    property word_delimiters : Array(Char) = {{" \n\t+-*/,;@&%<>\"'^\\[](){}|.~:=!?".chars}}
+
     # Creates a new `ExpressionEditor` with the given *prompt*.
     def initialize(&@prompt : Int32, Bool -> String)
       @prompt_size = @prompt.call(0, false).size # uncolorized size
@@ -126,6 +131,13 @@ module Reply
       @x = @y = 0
     end
 
+    # Returns true is the char at *x*, *y* is a word char.
+    private def word_char?(x)
+      if x >= 0 && (ch = self.current_line[x]?)
+        !ch.in? self.word_delimiters
+      end
+    end
+
     def current_line
       @lines[@y]
     end
@@ -138,6 +150,30 @@ module Reply
 
     def next_line?
       @lines[@y + 1]?
+    end
+
+    # Returns the word under the cursor following `word_delimiters`.
+    def current_word
+      word_begin, word_end = self.current_word_begin_end
+
+      self.current_line[word_begin..word_end]
+    end
+
+    # Returns begin and end position of `current_word`.
+    def current_word_begin_end
+      return 0, 0 if self.current_line.empty?
+
+      word_begin = {@x - 1, 0}.max
+      word_end = @x
+      while word_char?(word_begin)
+        word_begin -= 1
+      end
+
+      while word_char?(word_end)
+        word_end += 1
+      end
+
+      {word_begin + 1, word_end - 1}
     end
 
     def empty?
@@ -174,6 +210,20 @@ module Reply
     def next_line=(line)
       @lines[@y + 1] = line
       @expression = @expression_height = @colorized_lines = nil
+    end
+
+    # Replaces the word under the cursor by *replacement*, then moves cursor at the end of *replacement*.
+    # Should be called inside an `update`.
+    def current_word=(replacement)
+      word_begin, word_end = self.current_word_begin_end
+
+      if word_begin == word_end == 0
+        self.current_line = replacement
+      else
+        self.current_line = self.current_line.sub(word_begin..word_end, replacement)
+      end
+
+      move_abs_cursor(x: word_begin + replacement.size, y: @y)
     end
 
     # Should be called inside an `update`.
@@ -256,6 +306,46 @@ module Reply
       when .> 0
         self.current_line = current_line.delete_at(@x - 1)
         move_cursor(x: -1, y: 0)
+      end
+    end
+
+    # Should be called inside an `update`.
+    def delete_word
+      self.delete if @x == current_line.size
+
+      word_end = self.next_word_end
+      self.current_line = current_line[...@x] + current_line[(word_end + 1)..]
+    end
+
+    # Should be called inside an `update`.
+    def word_back
+      self.back if @x == 0
+
+      x = @x
+
+      word_begin = self.previous_word_begin
+      move_abs_cursor(x: word_begin, y: @y)
+
+      self.current_line = current_line[...word_begin] + current_line[x..]
+    end
+
+    # Should be called inside an `update`.
+    def delete_after_cursor
+      if @x == current_line.size
+        self.delete
+      elsif !current_line.empty?
+        self.current_line = current_line[...@x]
+      end
+    end
+
+    # Should be called inside an `update`.
+    def delete_before_cursor
+      if @x == 0
+        self.back
+      elsif !current_line.empty?
+        self.current_line = current_line[@x..]
+
+        move_abs_cursor(x: 0, y: @y)
       end
     end
 
@@ -566,6 +656,44 @@ module Reply
 
     def move_cursor_to_end_of_line(y = @y, allow_scrolling = true)
       move_cursor_to(@lines[y].size, y, allow_scrolling: allow_scrolling)
+    end
+
+    def move_word_forward
+      self.move_cursor_right if @x == self.current_line.size
+
+      word_end = self.next_word_end
+      self.move_cursor_to(x: word_end + 1, y: @y)
+    end
+
+    def move_word_backward
+      self.move_cursor_left if @x == 0
+
+      word_begin = self.previous_word_begin
+      self.move_cursor_to(x: word_begin, y: @y)
+    end
+
+    private def next_word_end
+      x = @x
+      while word_char?(x) == false
+        x += 1
+      end
+
+      while word_char?(x)
+        x += 1
+      end
+      x - 1
+    end
+
+    private def previous_word_begin
+      x = @x - 1
+      while word_char?(x) == false
+        x -= 1
+      end
+
+      while word_char?(x)
+        x -= 1
+      end
+      x + 1
     end
 
     # Refresh the screen.

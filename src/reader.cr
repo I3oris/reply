@@ -54,6 +54,7 @@ module Reply
     getter line_number = 1
 
     delegate :color?, :color=, :lines, :output, :output=, to: @editor
+    delegate :word_delimiters, :word_delimiters=, to: @editor
 
     def initialize
       @editor = ExpressionEditor.new do |expr_line_number, color?|
@@ -112,11 +113,6 @@ module Reply
     def indentation_level(expression_before_cursor : String)
       0
     end
-
-    # The list of characters delimiting words.
-    #
-    # default: ` \n\t+-*/,;@&%<>"'^\\[](){}|.~:=!?`
-    property word_delimiters : Array(Char) = {{" \n\t+-*/,;@&%<>\"'^\\[](){}|.~:=!?".chars}}
 
     # Override to select with expression is saved in history.
     #
@@ -202,25 +198,25 @@ module Reply
         in .shift_tab?      then on_tab(shift_tab: true)
         in .escape?         then on_escape
         in .alt_enter?      then on_enter(alt_enter: true) { }
-        in .alt_backspace?  then word_back
-        in .ctrl_backspace? then word_back
-        in .backspace?      then char_back
+        in .alt_backspace?  then @editor.update { word_back }
+        in .ctrl_backspace? then @editor.update { word_back }
+        in .backspace?      then on_back
         in .home?, .ctrl_a? then on_begin
         in .end?, .ctrl_e?  then on_end
-        in .delete?         then delete_char
-        in .ctrl_k?         then delete_after
-        in .ctrl_u?         then delete_before
-        in .alt_f?          then move_word_forward
-        in .alt_b?          then move_word_backward
-        in .ctrl_delete?    then delete_word
-        in .alt_d?          then delete_word
+        in .delete?         then @editor.update { delete }
+        in .ctrl_k?         then @editor.update { delete_after_cursor }
+        in .ctrl_u?         then @editor.update { delete_before_cursor }
+        in .alt_f?          then @editor.move_word_forward
+        in .alt_b?          then @editor.move_word_backward
+        in .ctrl_delete?    then @editor.update { delete_word }
+        in .alt_d?          then @editor.update { delete_word }
         in .ctrl_c?         then on_ctrl_c
         in .ctrl_d?
           if @editor.empty?
             output.puts
             return nil
           else
-            delete_char
+            @editor.update { delete }
           end
         in .eof?, .ctrl_x?
           output.puts
@@ -309,6 +305,11 @@ module Reply
       @editor.move_cursor_right
     end
 
+    private def on_back
+      auto_complete_remove_char if @auto_completion.open?
+      @editor.update { back }
+    end
+
     # If overridden, can yield an expression to giveback to `run`.
     # This is made because the `PryInterface` in `IC` can override these hotkeys and yield
     # command like `step`/`next`.
@@ -323,11 +324,11 @@ module Reply
     end
 
     private def on_ctrl_left(& : String ->)
-      move_word_backward
+      @editor.move_word_backward
     end
 
     private def on_ctrl_right(& : String ->)
-      move_word_forward
+      @editor.move_word_forward
     end
 
     private def on_ctrl_c
@@ -342,7 +343,7 @@ module Reply
       line = @editor.current_line
 
       # Retrieve the word under the cursor
-      word_begin, word_end = self.current_word_begin_end
+      word_begin, word_end = @editor.current_word_begin_end
       current_word = line[word_begin..word_end]
 
       if @auto_completion.open?
@@ -363,14 +364,9 @@ module Reply
         end
       end
 
+      # Replace the current_word by the replacement word
       if replacement
-        @editor.update do
-          # Replace the current_word by the replacement word:
-          @editor.current_line = line.sub(word_begin..word_end, replacement)
-        end
-
-        # Move cursor:
-        @editor.move_cursor_to(x: word_begin + replacement.size, y: @editor.y)
+        @editor.update { @editor.current_word = replacement }
       end
     end
 
@@ -387,10 +383,10 @@ module Reply
       @editor.move_cursor_to_end
     end
 
-    private def auto_complete_insert_char(read)
-      if read.is_a? Char && word_char?(@editor.x - 1)
-        @auto_completion.name_filter = self.current_word
-      elsif @editor.expression_scrolled? || read.is_a?(String)
+    private def auto_complete_insert_char(char)
+      if char.is_a? Char && !char.in?(@editor.word_delimiters) # @editor.word_char?(@editor.x - 1)
+        @auto_completion.name_filter = @editor.current_word
+      elsif @editor.expression_scrolled? || char.is_a?(String)
         @auto_completion.close
       else
         @auto_completion.clear
@@ -398,137 +394,12 @@ module Reply
     end
 
     private def auto_complete_remove_char
-      if word_char?(@editor.x - 1)
-        @auto_completion.name_filter = self.current_word[...-1]
+      char = @editor.current_line[@editor.x - 1]?
+      if !char.in?(@editor.word_delimiters)
+        # @editor.word_char?(@editor.x - 1)
+        @auto_completion.name_filter = @editor.current_word[...-1]
       else
         @auto_completion.clear
-      end
-    end
-
-    def move_word_forward
-      @editor.move_cursor_right if @editor.x == @editor.current_line.size
-
-      word_end = self.next_word_end
-      @editor.move_cursor_to(x: word_end + 1, y: @editor.y)
-    end
-
-    def move_word_backward
-      @editor.move_cursor_left if @editor.x == 0
-
-      word_begin = self.previous_word_begin
-      @editor.move_cursor_to(x: word_begin, y: @editor.y)
-    end
-
-    def delete_char
-      @editor.update { delete }
-    end
-
-    def delete_word
-      editor.update do
-        @editor.delete if @editor.x == @editor.current_line.size
-
-        line = @editor.current_line
-        x = @editor.x
-
-        word_end = self.next_word_end
-        @editor.current_line = line[...x] + line[(word_end + 1)..]
-      end
-    end
-
-    def char_back
-      # Alt-d
-      auto_complete_remove_char if @auto_completion.open?
-      @editor.update { back }
-    end
-
-    def word_back
-      if @editor.x == 0
-        editor.update { back }
-      end
-
-      line = @editor.current_line
-      x = @editor.x
-
-      word_begin = self.previous_word_begin
-      @editor.move_cursor_to(x: word_begin, y: @editor.y)
-
-      editor.update do
-        @editor.current_line = line[...word_begin] + line[x..]
-      end
-    end
-
-    def delete_after
-      x = @editor.x
-      if x == @editor.current_line.size
-        @editor.update { @editor.delete }
-      elsif !@editor.current_line.empty?
-        editor.update do
-          @editor.current_line = @editor.current_line[...x]
-        end
-      end
-    end
-
-    def delete_before
-      x = @editor.x
-      if x == 0
-        @editor.update { back }
-      elsif !@editor.current_line.empty?
-        @editor.update do
-          @editor.current_line = @editor.current_line[x..]
-        end
-
-        @editor.move_cursor_to(x: 0, y: @editor.y)
-      end
-    end
-
-    private def next_word_end
-      x = @editor.x
-      while word_char?(x) == false
-        x += 1
-      end
-
-      while word_char?(x)
-        x += 1
-      end
-      x - 1
-    end
-
-    private def previous_word_begin
-      x = @editor.x - 1
-      while word_char?(x) == false
-        x -= 1
-      end
-
-      while word_char?(x)
-        x -= 1
-      end
-      x + 1
-    end
-
-    private def current_word_begin_end(x = @editor.x)
-      word_begin = {x - 1, 0}.max
-      word_end = x
-      while word_char?(word_begin)
-        word_begin -= 1
-      end
-
-      while word_char?(word_end)
-        word_end += 1
-      end
-
-      {word_begin + 1, word_end - 1}
-    end
-
-    private def current_word
-      word_begin, word_end = self.current_word_begin_end
-
-      @editor.current_line[word_begin..word_end]
-    end
-
-    # Returns true is the char at *x*, *y* is a word char.
-    private def word_char?(x)
-      if x >= 0 && (ch = @editor.current_line[x]?)
-        !(ch.in? self.word_delimiters)
       end
     end
 

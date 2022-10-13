@@ -113,12 +113,10 @@ module Reply
       0
     end
 
-    # Override this method to return the regex delimiting words.
+    # The list of characters delimiting words.
     #
-    # default: `/[ \n\t\+\-\*\/,;@&%<>"'\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/`
-    def word_delimiters
-      /[ \n\t\+\-\*\/,;@&%<>"'\^\\\[\]\(\)\{\}\|\.\~:=\!\?]/
-    end
+    # default: ` \n\t+-*/,;@&%<>"'^\\[](){}|.~:=!?`
+    property word_delimiters : Array(Char) = {{" \n\t+-*/,;@&%<>\"'^\\[](){}|.~:=!?".chars}}
 
     # Override to select with expression is saved in history.
     #
@@ -530,7 +528,7 @@ module Reply
     # Returns true is the char at *x*, *y* is a word char.
     private def word_char?(x)
       if x >= 0 && (ch = @editor.current_line[x]?)
-        !(self.word_delimiters =~ ch.to_s)
+        !(ch.in? self.word_delimiters)
       end
     end
 

@@ -74,10 +74,6 @@ class MyReader < Reply::Reader
     # Compute the indentation from the expression
   end
 
-  def word_delimiters : Regex
-    # Return the word delimiters used for pick the word for auto-completion
-  end
-
   def save_in_history?(expression : String) : Bool
     # Return whether the expression is saved in history
   end

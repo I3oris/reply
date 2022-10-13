@@ -41,6 +41,10 @@ CONTINUE_ERROR = [
   "unknown token: '\\u{0}'",
 ]
 
+# `"`, `:`, `'`, are not a delimiter because symbols and strings are treated as one word.
+# '=', !', '?' are not a delimiter because they could make part of method name.
+WORD_DELIMITERS = {{" \n\t+-*/,;@&%<>^\\[](){}|.~".chars}}
+
 class CrystalReader < Reply::Reader
   def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
     io << "crystal".colorize.blue.toggle(color?)
@@ -69,12 +73,6 @@ class CrystalReader < Reply::Reader
     parser.parse rescue nil
 
     parser.type_nest + parser.def_nest + parser.fun_nest
-  end
-
-  def word_delimiters : Regex
-    # `"`, `:`, `'`, are not a delimiter because symbols and strings are treated as one word.
-    # '=', !', '?' are not a delimiter because they could make part of method name.
-    /[ \n\t\+\-\*\/,;@&%<>\^\\\[\]\(\)\{\}\|\.\~]/
   end
 
   def reindent_line(line)
@@ -110,6 +108,7 @@ class CrystalReader < Reply::Reader
 end
 
 reader = CrystalReader.new
+reader.word_delimiters = WORD_DELIMITERS
 
 reader.read_loop do |expression|
   case expression

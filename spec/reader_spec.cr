@@ -268,6 +268,33 @@ module Reply
       SpecHelper.send(pipe_in, '\0')
     end
 
+    it "roll over auto completion entries with equal" do
+      reader = SpecHelper.reader(SpecReaderWithEqual)
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, '\t')
+      reader.auto_completion.verify(open: true, entries: %w(hello world= hey))
+      reader.editor.verify("")
+
+      SpecHelper.send(pipe_in, '\t')
+      reader.auto_completion.verify(open: true, entries: %w(hello world= hey), selection_pos: 0)
+      reader.editor.verify("hello")
+
+      SpecHelper.send(pipe_in, '\t')
+      reader.auto_completion.verify(open: true, entries: %w(hello world= hey), selection_pos: 1)
+      reader.editor.verify("world=")
+
+      SpecHelper.send(pipe_in, '\t')
+      reader.auto_completion.verify(open: true, entries: %w(hello world= hey), selection_pos: 2)
+      reader.editor.verify("hey")
+
+      SpecHelper.send(pipe_in, '\0')
+    end
+
     it "uses escape" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

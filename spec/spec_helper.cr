@@ -81,6 +81,19 @@ module Reply
     getter auto_completion
   end
 
+  class SpecReaderWithEqual < Reader
+    def initialize
+      super
+      self.word_delimiters = {{" \n\t+-*/,;@&%<>^\\[](){}|.~".chars}}
+    end
+
+    def auto_complete(current_word : String, expression_before : String)
+      return "title", %w(hello world= hey)
+    end
+
+    getter auto_completion
+  end
+
   module SpecHelper
     def self.auto_completion(returning results)
       results = results.clone
@@ -111,8 +124,8 @@ module Reply
       CharReader.new(buffer_size)
     end
 
-    def self.reader
-      reader = SpecReader.new
+    def self.reader(type = SpecReader)
+      reader = type.new
       reader.output = IO::Memory.new
       reader.color = false
       reader.editor.height = 15

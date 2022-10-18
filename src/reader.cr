@@ -384,7 +384,7 @@ module Reply
     end
 
     private def auto_complete_insert_char(char)
-      if char.is_a? Char && !char.in?(@editor.word_delimiters) # @editor.word_char?(@editor.x - 1)
+      if char.is_a? Char && !char.in?(@editor.word_delimiters)
         @auto_completion.name_filter = @editor.current_word
       elsif @editor.expression_scrolled? || char.is_a?(String)
         @auto_completion.close
@@ -396,7 +396,6 @@ module Reply
     private def auto_complete_remove_char
       char = @editor.current_line[@editor.x - 1]?
       if !char.in?(@editor.word_delimiters)
-        # @editor.word_char?(@editor.x - 1)
         @auto_completion.name_filter = @editor.current_word[...-1]
       else
         @auto_completion.clear

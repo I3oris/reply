@@ -407,7 +407,11 @@ module Reply
       @editor.end_editing(replacement: formated)
 
       @line_number += @editor.lines.size
-      @history << @editor.lines if history && save_in_history?(@editor.expression)
+      if history && save_in_history?(@editor.expression)
+        @history << @editor.lines
+      else
+        @history.set_to_last
+      end
     end
   end
 end

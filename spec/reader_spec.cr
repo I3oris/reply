@@ -555,6 +555,39 @@ module Reply
       SpecHelper.send(pipe_in, "\0")
     end
 
+    it "sets history to last after empty entry" do
+      reader = SpecHelper.reader
+      pipe_out, pipe_in = IO.pipe
+
+      spawn do
+        reader.read_next(from: pipe_out).should eq "a"
+        reader.read_next(from: pipe_out).should eq "b"
+        reader.read_next(from: pipe_out).should eq ""
+        reader.read_next(from: pipe_out)
+      end
+
+      SpecHelper.send(pipe_in, 'a')
+      SpecHelper.send(pipe_in, '\n')
+      SpecHelper.send(pipe_in, 'b')
+      SpecHelper.send(pipe_in, '\n')
+
+      SpecHelper.send(pipe_in, "\e[A") # up
+      reader.editor.verify("b")
+      SpecHelper.send(pipe_in, "\e[A") # up
+      reader.editor.verify("a")
+
+      SpecHelper.send(pipe_in, "\u{7f}") # back
+      SpecHelper.send(pipe_in, '\n')
+      reader.editor.verify("")
+
+      SpecHelper.send(pipe_in, "\e[A") # up
+      reader.editor.verify("b")
+      SpecHelper.send(pipe_in, "\e[A") # up
+      reader.editor.verify("a")
+
+      SpecHelper.send(pipe_in, '\0')
+    end
+
     it "resets" do
       reader = SpecHelper.reader
       pipe_out, pipe_in = IO.pipe

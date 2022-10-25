@@ -368,6 +368,12 @@ module Reply
       1 + (@prompt_size + line.size) // self.width
     end
 
+    private def height_above_cursor(x = @x, y = @y)
+      height = @lines.each.first(@y).sum { |l| line_height(l) }
+      height += line_height(current_line[...@x]) - 1
+      height
+    end
+
     # The editor width, if not set (`nil`), equal to term width.
     def width
       @width || Term::Size.width
@@ -704,9 +710,7 @@ module Reply
     # if *force_full_view* is true, whole expression is displayed, even if it overflow the term width, otherwise
     # the expression is bound and can be scrolled.
     def update(force_full_view = false, &)
-      @output.print Term::Cursor.hide
-      rewind_cursor
-      header = update_header
+      height_to_clear = self.height_above_cursor
       with self yield
 
       @expression = @expression_height = @colorized_lines = nil
@@ -715,28 +719,17 @@ module Reply
       @y = @y.clamp(0, @lines.size - 1)
       @x = @x.clamp(0, @lines[@y].size)
 
-      @output.print header
-      print_expression(force_full_view)
-      @output.print Term::Cursor.show
+      print_expression_and_header(height_to_clear, force_full_view)
     end
 
     def update(force_full_view = false)
-      @output.print Term::Cursor.hide
-      rewind_cursor
-      header = update_header
+      height_to_clear = self.height_above_cursor
 
-      @output.print header
-      print_expression(force_full_view)
-      @output.print Term::Cursor.show
+      print_expression_and_header(height_to_clear, force_full_view)
     end
 
-    # Clears previous headers (knowing its size), then call the header proc and returns it as string.
+    # Calls the header proc and saves the *header_height*
     private def update_header : String
-      @output.print Term::Cursor.clear_line_after
-      unless @header_height == 0
-        @output.print Term::Cursor.up(@header_height)
-        @output.print Term::Cursor.clear_screen_down
-      end
       String.build do |io|
         @header_height = @header.call(io, @header_height)
       end
@@ -803,10 +796,8 @@ module Reply
     # Updates the scroll offset in a way that (cursor + y_shift) is still between the view bounds
     # Returns true if the offset has been effectively modified.
     private def update_scroll_offset(y_shift = 0)
-      start, end_ = view_bounds
-      real_y = @lines.each.first(@y).sum { |l| line_height(l) }
-      real_y += line_height(current_line[..@x]) - 1
-      real_y += y_shift
+      start, end_ = self.view_bounds
+      real_y = self.height_above_cursor + y_shift
 
       # case 1: cursor is before view start, we need to increase the scroll by the difference.
       if real_y < start
@@ -840,19 +831,6 @@ module Reply
       {start, end_}
     end
 
-    # Rewinds the real cursor to the beginning of the expression without changing @x/@y cursor:
-    private def rewind_cursor
-      if expression_height >= self.height
-        @output.print Term::Cursor.row(1)
-      else
-        x_save, y_save = @x, @y
-        move_cursor_to_begin(allow_scrolling: false)
-        @x, @y = x_save, y_save
-      end
-
-      @output.print Term::Cursor.column(1)
-    end
-
     private def print_line(io, colorized_line, line_index, line_size, prompt?, first?, is_last_part?)
       if prompt?
         io.puts unless first?
@@ -870,13 +848,34 @@ module Reply
       io.puts if is_last_part? && last_part_size(line_size) == 0
     end
 
-    # Prints the colorized expression, this later is clipped if it's higher than screen.
+    private def sync_output
+      if (output = @output).is_a?(IO::FileDescriptor) && output.tty?
+        # Disallowing the synchronization reduce blinking on some terminal like vscode (#10)
+        output.sync = false
+        output.flush_on_newline = false
+        output.print Term::Cursor.hide
+        yield
+        output.print Term::Cursor.show
+        output.flush_on_newline = true
+        output.sync = true
+        output.flush
+      else
+        yield
+      end
+    end
+
+    # Prints the colorized expression, this former is clipped if it's higher than screen.
+    # The `header` is print just above.
     # The only displayed part of the expression is delimited by `view_bounds` and depend of the value of
     # `@scroll_offset`.
     # Lines that takes more than one line (if wrapped) are cut in consequence.
     #
+    # *height_to_clear* is the height we have to clear between the previous cursor pos and the beginning of the prompt.
     # if *force_full_view* is true, all expression is dumped on screen, without clipping.
-    private def print_expression(force_full_view = false)
+    private def print_expression_and_header(height_to_clear, force_full_view = false)
+      height_to_clear += @header_height
+      header = update_header()
+
       if force_full_view
         start, end_ = 0, Int32::MAX
       else
@@ -933,14 +932,21 @@ module Reply
         end
       end
 
-      @output.print Term::Cursor.clear_screen_down
-      @output.print display
+      sync_output do
+        # Rewind cursor from *height_to_clear*, then print the header and the clipped expression
+        move_real_cursor(x: 0, y: -height_to_clear)
+        @output.print Term::Cursor.column(1)
+        @output.print Term::Cursor.clear_screen_down
+        @output.print header
+        @output.print display
 
-      # Retrieve the real cursor at its corresponding cursor position (`@x`, `@y`)
-      x_save, y_save = @x, @y
-      @y = cursor_move_y
-      @x = cursor_move_x
-      move_cursor_to(x_save, y_save, allow_scrolling: false)
+        # Retrieve the real cursor at its corresponding cursor position (`@x`, `@y`)
+        x_save, y_save = @x, @y
+        @y = cursor_move_y
+        @x = cursor_move_x
+
+        move_cursor_to(x_save, y_save, allow_scrolling: false)
+      end
     end
 
     # Splits the given *line* (colorized) into parts delimited by wrapping.

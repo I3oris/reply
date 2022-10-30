@@ -390,6 +390,46 @@ module Reply
       editor.verify(x: 12, y: 1, scroll_offset: 2)
     end
 
+    it "is aligned when prompt size change" do
+      editor = ExpressionEditor.new do |line_number, _color?|
+        "*" * line_number + ">" # A prompt that increase its size at each line
+      end
+      editor.output = IO::Memory.new
+      editor.color = false
+      editor.height = 50
+      editor.width = 15
+
+      editor.update { editor << '1' }
+      editor.verify_output "\e[1G\e[J" + <<-END
+      >1
+      END
+
+      editor.update { editor << '\n' << '2' }
+
+      editor.output = IO::Memory.new # Reset the output because we want verify only the last update
+      editor.update                  # It currently need an extra update for the alignment to be taken in account.
+      editor.verify_output "\e[1A\e[1G\e[J" + <<-END
+      > 1
+      *>2
+      END
+
+      editor.update do
+        editor << '\n' << '3'
+        editor << '\n' << '4'
+        editor << '\n' << '5'
+      end
+
+      editor.output = IO::Memory.new
+      editor.update
+      editor.verify_output "\e[4A\e[1G\e[J" + <<-END
+      >    1
+      *>   2
+      **>  3
+      ***> 4
+      ****>5
+      END
+    end
+
     # TODO:
     # header
   end

@@ -408,10 +408,9 @@ module Reply
 
       editor.output = IO::Memory.new # Reset the output because we want verify only the last update
       editor.update                  # It currently need an extra update for the alignment to be taken in account.
-      editor.verify_output "\e[1A\e[1G\e[J" + <<-END
-      > 1
-      *>2
-      END
+      editor.verify_output "\e[1A\e[1G\e[J" \
+                           "> 1\n" \
+                           "*>2"
 
       editor.update do
         editor << '\n' << '3'
@@ -421,13 +420,12 @@ module Reply
 
       editor.output = IO::Memory.new
       editor.update
-      editor.verify_output "\e[4A\e[1G\e[J" + <<-END
-      >    1
-      *>   2
-      **>  3
-      ***> 4
-      ****>5
-      END
+      editor.verify_output "\e[4A\e[1G\e[J" \
+                           ">    1\n" \
+                           "*>   2\n" \
+                           "**>  3\n" \
+                           "***> 4\n" \
+                           "****>5"
     end
 
     # TODO:

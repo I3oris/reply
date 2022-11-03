@@ -198,6 +198,7 @@ module Reply
         in .shift_tab?      then on_tab(shift_tab: true)
         in .escape?         then on_escape
         in .alt_enter?      then on_enter(alt_enter: true) { }
+        in .ctrl_enter?     then on_enter(ctrl_enter: true) { }
         in .alt_backspace?  then @editor.update { word_back }
         in .ctrl_backspace? then @editor.update { word_back }
         in .backspace?      then on_back
@@ -267,9 +268,9 @@ module Reply
       end
     end
 
-    private def on_enter(alt_enter = false, &)
+    private def on_enter(alt_enter = false, ctrl_enter = false, &)
       @auto_completion.close
-      if alt_enter || (@editor.cursor_on_last_line? && continue?(@editor.expression))
+      if alt_enter || ctrl_enter || (@editor.cursor_on_last_line? && continue?(@editor.expression))
         @editor.update do
           insert_new_line(indent: self.indentation_level(@editor.expression_before_cursor))
         end

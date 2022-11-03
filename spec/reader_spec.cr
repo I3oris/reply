@@ -1,3 +1,7 @@
+{% skip_file if flag?(:win32) %}
+# FIXME: We skip all these specs because the file descriptor is blocking, making
+# the spec to hang out, and we cannot change it. # (`blocking=` is not implemented on window)
+
 require "./spec_helper"
 
 module Reply
@@ -13,7 +17,6 @@ module Reply
 
       SpecHelper.send(pipe_in, 'a')
       SpecHelper.send(pipe_in, '\n')
-
       SpecHelper.send(pipe_in, '♥')
       SpecHelper.send(pipe_in, '💎')
       SpecHelper.send(pipe_in, '\n')

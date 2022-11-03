@@ -36,12 +36,10 @@ module Reply
       reader.verify_read("\ed", expect: :alt_d)
       reader.verify_read("\ef", expect: :alt_f)
       reader.verify_read("\e", expect: :escape)
-      reader.verify_read("\n", expect: :enter)
       reader.verify_read("\t", expect: :tab)
 
       reader.verify_read('\0', expect: [] of CharReader::Sequence)
       reader.verify_read('\t', expect: :tab)
-      reader.verify_read('\n', expect: :enter)
       reader.verify_read('\b', expect: :ctrl_backspace)
       reader.verify_read('\u007F', expect: :backspace)
       reader.verify_read('\u0001', expect: :ctrl_a)
@@ -55,6 +53,13 @@ module Reply
       reader.verify_read('\u0010', expect: :ctrl_p)
       reader.verify_read('\u0015', expect: :ctrl_u)
       reader.verify_read('\u0018', expect: :ctrl_x)
+
+      {% if flag?(:win32) %}
+        reader.verify_read('\n', expect: :ctrl_enter)
+        reader.verify_read('\r', expect: :enter)
+      {% else %}
+        reader.verify_read('\n', expect: :enter)
+      {% end %}
     end
 
     it "read large buffer" do

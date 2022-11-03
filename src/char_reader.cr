@@ -25,6 +25,7 @@ module Reply
       CTRL_DOWN
       CTRL_LEFT
       CTRL_RIGHT
+      CTRL_ENTER
       CTRL_DELETE
       CTRL_BACKSPACE
       ALT_B
@@ -42,10 +43,20 @@ module Reply
       @slice_buffer = Bytes.new(buffer_size)
     end
 
-    def read_char(from io = STDIN)
-      nb_read = raw(io, &.read(@slice_buffer))
+    def read_char(from io : T = STDIN) forall T
+      {% if flag?(:win32) && T <= IO::FileDescriptor %}
+        handle = LibC._get_osfhandle(io.fd)
+        raise RuntimeError.from_errno("_get_osfhandle") if handle == -1
 
-      parse_escape_sequence(@slice_buffer[0...nb_read])
+        raw(io) do
+          LibC.ReadConsoleA(LibC::HANDLE.new(handle), @slice_buffer, @slice_buffer.size, out nb_read, nil)
+
+          parse_escape_sequence(@slice_buffer[0...nb_read])
+        end
+      {% else %}
+        nb_read = raw(io, &.read(@slice_buffer))
+        parse_escape_sequence(@slice_buffer[0...nb_read])
+      {% end %}
     end
 
     # ameba:disable Metrics/CyclomaticComplexity
@@ -112,8 +123,14 @@ module Reply
         when Nil
           Sequence::ESCAPE
         end
-      when '\r'.ord, '\n'.ord
+      when '\r'.ord
         Sequence::ENTER
+      when '\n'.ord
+        {% if flag?(:win32) %}
+          Sequence::CTRL_ENTER
+        {% else %}
+          Sequence::ENTER
+        {% end %}
       when '\t'.ord
         Sequence::TAB
       when '\b'.ord
@@ -168,3 +185,15 @@ module Reply
     end
   end
 end
+
+{% if flag?(:win32) %}
+  lib LibC
+    STD_INPUT_HANDLE = -10
+
+    fun ReadConsoleA(hConsoleInput : Void*,
+                     lpBuffer : Void*,
+                     nNumberOfCharsToRead : UInt32,
+                     lpNumberOfCharsRead : UInt32*,
+                     pInputControl : Void*) : UInt8
+  end
+{% end %}

@@ -54,10 +54,6 @@ module Reply
     getter lines : Array(String) = [""]
     getter expression : String? { lines.join('\n') }
     getter expression_height : Int32? { lines.sum { |l| line_height(l) } }
-    getter colorized_lines : Array(String)? do
-      color? ? @highlight.call(self.expression).split('\n') : lines
-    end
-
     property? color = true
     property output : IO = STDOUT
 
@@ -198,19 +194,19 @@ module Reply
     # Should be called inside an `update`.
     def previous_line=(line)
       @lines[@y - 1] = line
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
     end
 
     # Should be called inside an `update`.
     def current_line=(line)
       @lines[@y] = line
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
     end
 
     # Should be called inside an `update`.
     def next_line=(line)
       @lines[@y + 1] = line
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
     end
 
     # Replaces the word under the cursor by *replacement*, then moves cursor at the end of *replacement*.
@@ -230,13 +226,13 @@ module Reply
     # Should be called inside an `update`.
     def delete_line(y)
       @lines.delete_at(y)
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
     end
 
     # Should be called inside an `update`.
     def clear_expression
       @lines.clear << ""
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
     end
 
     # Should be called inside an `update`.
@@ -275,7 +271,7 @@ module Reply
         self.current_line = current_line[...@x]
       end
 
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
       move_abs_cursor(x: indent*2, y: @y + 1)
       self
     end
@@ -714,7 +710,7 @@ module Reply
       height_to_clear = self.height_above_cursor
       with self yield
 
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
 
       # Updated expression can be smaller so we might need to adjust the cursor:
       @y = @y.clamp(0, @lines.size - 1)
@@ -758,7 +754,7 @@ module Reply
     def prompt_next
       @scroll_offset = 0
       @lines = [""]
-      @expression = @expression_height = @colorized_lines = nil
+      @expression = @expression_height = nil
       reset_cursor
       @max_prompt_size = 0
       print_prompt(@output, 0)
@@ -895,6 +891,13 @@ module Reply
       first = true
 
       y = 0
+
+      colorized_lines =
+        if self.color?
+          @highlight.call(self.expression).split('\n')
+        else
+          self.lines
+        end
 
       # While printing, real cursor move, but @x/@y don't, so we track the moved cursor position to be able to
       # restore real cursor at @x/@y position.

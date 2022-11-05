@@ -59,7 +59,6 @@ module Reply
       {% end %}
     end
 
-    # ameba:disable Metrics/CyclomaticComplexity
     private def parse_escape_sequence(chars : Bytes) : Char | Sequence | String?
       return String.new(chars) if chars.size > 6
       return Sequence::EOF if chars.empty?

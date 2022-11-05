@@ -482,8 +482,8 @@ module Reply
       end
     end
 
-    def move_cursor_up
-      scroll_up_if_needed
+    def move_cursor_up(allow_scrolling = true)
+      scroll_up_if_needed if allow_scrolling
 
       if (@prompt_size + @x) >= self.width
         if @x >= self.width
@@ -548,8 +548,8 @@ module Reply
       end
     end
 
-    def move_cursor_down
-      scroll_down_if_needed
+    def move_cursor_down(allow_scrolling = true)
+      scroll_down_if_needed if allow_scrolling
 
       size_of_last_part = last_part_size(current_line.size)
       real_x = last_part_size(@x)
@@ -627,18 +627,12 @@ module Reply
     end
 
     def move_cursor_to(x, y, allow_scrolling = true)
-      if y > @y || (y == @y && x > @x)
-        # Destination is after, move cursor forward:
-        until {@x, @y} == {x, y}
-          move_cursor_right(allow_scrolling: false)
-          raise "Bug: position (#{x}, #{y}) missed when moving cursor forward" if @y > y
-        end
-      else
-        # Destination is before, move cursor backward:
-        until {@x, @y} == {x, y}
-          move_cursor_left(allow_scrolling: false)
-          raise "Bug: position (#{x}, #{y}) missed when moving cursor backward" if @y < y
-        end
+      until @y == y
+        (@y > y) ? move_cursor_up(allow_scrolling: false) : move_cursor_down(allow_scrolling: false)
+      end
+
+      until @x == x
+        (@x > x) ? move_cursor_left(allow_scrolling: false) : move_cursor_right(allow_scrolling: false)
       end
 
       if allow_scrolling && update_scroll_offset

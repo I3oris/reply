@@ -80,7 +80,6 @@ module Reply
 
     @prompt : Int32, Bool -> String
     @prompt_size : Int32
-    @max_prompt_size : Int32
 
     @scroll_offset = 0
     @header_height = 0
@@ -95,7 +94,7 @@ module Reply
 
     # Creates a new `ExpressionEditor` with the given *prompt*.
     def initialize(&@prompt : Int32, Bool -> String)
-      @max_prompt_size = @prompt_size = @prompt.call(0, false).size # uncolorized size
+      @prompt_size = @prompt.call(0, false).size # uncolorized size
 
       at_exit { @output.print Term::Cursor.show }
     end
@@ -756,17 +755,17 @@ module Reply
       @lines = [""]
       @expression = @expression_height = nil
       reset_cursor
-      @max_prompt_size = 0
+      @prompt_size = 0
       print_prompt(@output, 0)
     end
 
     private def print_prompt(io, line_index)
-      @prompt_size = @prompt.call(line_index, false).size # uncolorized size
-      @max_prompt_size = {@prompt_size, @max_prompt_size}.max
+      line_prompt_size = @prompt.call(line_index, false).size # uncolorized size
+      @prompt_size = {line_prompt_size, @prompt_size}.max
       io.print @prompt.call(line_index, color?)
 
       # Padding to align the lines when the prompt size change
-      (@max_prompt_size - @prompt_size).times do
+      (@prompt_size - line_prompt_size).times do
         io.print ' '
       end
     end

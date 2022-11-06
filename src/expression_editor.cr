@@ -95,8 +95,6 @@ module Reply
     # Creates a new `ExpressionEditor` with the given *prompt*.
     def initialize(&@prompt : Int32, Bool -> String)
       @prompt_size = @prompt.call(0, false).size # uncolorized size
-
-      at_exit { @output.print Term::Cursor.show }
     end
 
     # Sets a `Proc` allowing to display a header above the prompt. (used by auto-completion)

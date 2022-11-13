@@ -12,12 +12,11 @@ It includes the following features:
 * Hook for Auto formatting
 * Hook for Auto indentation
 * Hook for Auto completion (Experimental)
+* Work on Windows 10
 
 It doesn't support yet:
-* Saving history in a file
 * History reverse i-search
 * Customizable hotkeys
-* Window compatibility (Not tested yet)
 * Unicode characters
 
 NOTE: REPLy was extracted from https://github.com/I3oris/ic, it was first designed to fit exactly the usecase of a crystal interpreter, so don't hesitate to open an issue to make REPLy more generic and suitable for your project if needed.

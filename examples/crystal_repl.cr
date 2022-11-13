@@ -90,6 +90,10 @@ class CrystalReader < Reply::Reader
     !expression.blank?
   end
 
+  def history_file : Path | String | IO | Nil
+    "history.txt"
+  end
+
   def auto_complete(name_filter : String, expression : String) : {String, Array(String)}
     return "Keywords:", CRYSTAL_KEYWORD.dup
   end
@@ -113,7 +117,7 @@ reader.word_delimiters = WORD_DELIMITERS
 reader.read_loop do |expression|
   case expression
   when "clear_history"
-    reader.history.clear
+    reader.clear_history
   when "reset"
     reader.reset
   when "exit"

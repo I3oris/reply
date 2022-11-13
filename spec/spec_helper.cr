@@ -49,7 +49,7 @@ module Reply
 
   class History
     def verify(entries, index)
-      @history.should eq entries
+      @history.should eq Deque(Array(String)).new(entries)
       @index.should eq index
     end
   end

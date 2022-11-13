@@ -73,6 +73,10 @@ module Reply
       end
 
       @editor.set_highlight(&->highlight(String))
+
+      if file = self.history_file
+        @history.load(file)
+      end
     end
 
     # Override to customize the prompt.
@@ -119,6 +123,13 @@ module Reply
     # default: `!expression.blank?`
     def save_in_history?(expression : String)
       !expression.blank?
+    end
+
+    # Override to indicate the `Path|String|IO` where the history is saved. If `nil`, the history is not persistent.
+    #
+    # default: `nil`
+    def history_file
+      nil
     end
 
     # Override to integrate auto-completion.
@@ -244,6 +255,14 @@ module Reply
     def reset
       @line_number = 1
       @auto_completion.close
+    end
+
+    # Clear the history and the `history_file`.
+    def clear_history
+      @history.clear
+      if file = self.history_file
+        @history.save(file)
+      end
     end
 
     private def on_char(char)
@@ -412,6 +431,9 @@ module Reply
         @history << @editor.lines
       else
         @history.set_to_last
+      end
+      if file = self.history_file
+        @history.save(file)
       end
     end
   end

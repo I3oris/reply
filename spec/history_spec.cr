@@ -96,5 +96,83 @@ module Reply
       history.down(ENTRIES[2]).should eq [%(current edition...)]
       history.verify(ENTRIES, index: 3)
     end
+
+    it "saves and loads" do
+      entries = ([
+        [%(foo)],
+        [%q(\)],
+        [
+          %q(bar),
+          %q("baz" \),
+          %q("\n\\"),
+          %q(),
+          %q(\),
+        ],
+        [%q(a\\\b)],
+      ])
+      history = SpecHelper.history(with: entries)
+
+      io = IO::Memory.new
+      history.save(io)
+      io.to_s.should eq <<-'HISTORY'
+        foo
+        \\
+        bar\
+        "baz" \\\
+        "\\n\\\\"\
+        \
+        \\
+        a\\\\\\b
+        HISTORY
+
+      io.rewind
+      history.load(io)
+
+      history.verify(entries, index: 4)
+    end
+
+    it "saves and loads empty" do
+      history = SpecHelper.history
+
+      io = IO::Memory.new
+      history.save(io)
+      io.to_s.should be_empty
+
+      io.rewind
+      history.load(io)
+
+      history.verify([] of Array(String), index: 0)
+    end
+
+    it "respects max size" do
+      history = SpecHelper.history
+
+      history.max_size = 4
+
+      history << ["1"]
+      history << ["2"]
+      history << ["3"]
+      history << ["4"]
+      history.verify([["1"], ["2"], ["3"], ["4"]], index: 4)
+
+      history << ["5"]
+      history.verify([["2"], ["3"], ["4"], ["5"]], index: 4)
+
+      history.max_size = 2
+      history << ["6"]
+      history.verify([["5"], ["6"]], index: 2)
+
+      history.max_size = 0 # minimum possible is 1
+      history << ["7"]
+      history.verify([["7"]], index: 1)
+
+      history.max_size = -314 # minimum possible is 1
+      history << ["8"]
+      history.verify([["8"]], index: 1)
+
+      history.max_size = 3
+      history << ["9"]
+      history.verify([["8"], ["9"]], index: 2)
+    end
   end
 end

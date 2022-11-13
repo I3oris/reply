@@ -1,3 +1,23 @@
+## RELPy v0.3.0
+
+### New features
+* Windows support: REPLy is now working on Windows 10.
+All features expect to work like linux except the key binding 'alt-enter'
+that becomes 'ctrl-enter' on windows.
+* Implement saving history in a file.
+  * Add `Reader#history_file` which allow to specify the file location.
+  * Add `History#max_size=` which allow to change the history max size. (default: 10_000)
+
+### Internals
+* Windows: use `GetConsoleScreenBufferInfo` for `Term::Size` and `ReadConsoleA` for
+`read_char`.
+* Windows: Disable some specs on windows.
+* Small refactoring on `colorized_lines`.
+* Refactor: Remove unneeded ivar `@max_prompt_size`.
+* Improve performances for `move_cursor_to`.
+* Remove unneeded ameba exception.
+* Remove useless printing of `Term::Cursor.show` at exit.
+
 ## RELPy v0.2.1
 
 ### Bug fixs

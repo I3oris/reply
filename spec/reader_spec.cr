@@ -254,7 +254,7 @@ module Reply
       reader.auto_completion.verify(open: true, entries: %w(hello hey), name_filter: "h", selection_pos: 0)
       reader.editor.verify("42.hello")
 
-      SpecHelper.send(pipe_in, "\e\t") # shit_tab
+      SpecHelper.send(pipe_in, "\e\t") # shift_tab
       reader.auto_completion.verify(open: true, entries: %w(hello hey), name_filter: "h", selection_pos: 1)
       reader.editor.verify("42.hey")
 

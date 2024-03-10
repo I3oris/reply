@@ -371,25 +371,37 @@ module Reply
       if @auto_completion.open?
         if shift_tab
           replacement = @auto_completion.selection_previous
+        elsif current_word.ends_with?("::")
+          @auto_completion.close
+          replacement = compute_completions(current_word, word_begin)
         else
           replacement = @auto_completion.selection_next
+          if replacement.try(&.count("::")) != current_word.count("::")
+            @auto_completion.close
+            replacement = compute_completions(current_word, word_begin)
+          end
         end
       else
-        # Get whole expression before cursor, allow auto-completion to deduce the receiver type
-        expr = @editor.expression_before_cursor(x: word_begin)
-
-        # Compute auto-completion, return `replacement` (`nil` if no entry, full name if only one entry, or the begin match of entries otherwise)
-        replacement = @auto_completion.complete_on(current_word, expr)
-
-        if replacement && @auto_completion.entries.size >= 2
-          @auto_completion.open
-        end
+        replacement = compute_completions(current_word, word_begin)
       end
 
       # Replace the current_word by the replacement word
       if replacement
         @editor.update { @editor.current_word = replacement }
       end
+    end
+
+    private def compute_completions(current_word, word_begin) : String?
+      expr = @editor.expression_before_cursor(x: word_begin)
+
+      # Compute auto-completion, return `replacement` (`nil` if no entry, full name if only one entry, or the begin match of entries otherwise)
+      replacement = @auto_completion.complete_on(current_word, expr)
+
+      if replacement && @auto_completion.entries.size >= 2
+        @auto_completion.open
+      end
+
+      replacement
     end
 
     private def on_escape

@@ -95,6 +95,7 @@ module Reply
     # Creates a new `ExpressionEditor` with the given *prompt*.
     def initialize(&@prompt : Int32, Bool -> String)
       @prompt_size = @prompt.call(0, false).size # uncolorized size
+      @prompt_size = 1 if @prompt_size == 0
     end
 
     # Sets a `Proc` allowing to display a header above the prompt. (used by auto-completion)
@@ -753,6 +754,8 @@ module Reply
 
     private def print_prompt(io, line_index)
       line_prompt_size = @prompt.call(line_index, false).size # uncolorized size
+      line_prompt_size = 1 if line_prompt_size == 0
+
       @prompt_size = {line_prompt_size, @prompt_size}.max
       io.print @prompt.call(line_index, color?)
 

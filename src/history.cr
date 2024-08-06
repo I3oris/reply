@@ -61,24 +61,6 @@ module Reply
       end
     end
 
-    def search_up(query, from_index = @index - 1)
-      return nil, 0, 0 if query.empty?
-      return nil, 0, 0 unless 0 <= from_index < @history.size
-
-      # Search the history starting by `from_index` until first entry,
-      # then cycle the search by searching from last entry to `from_index`
-      from_index.downto(0).chain(
-        (@history.size - 1).downto(from_index + 1)
-      ).each do |i|
-        @history[i].each_with_index do |line, y|
-          x = line.index query
-          return i, x, y if x
-        end
-      end
-
-      return nil, 0, 0
-    end
-
     def max_size=(max_size)
       @max_size = max_size.clamp 1..
     end

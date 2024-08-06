@@ -493,10 +493,15 @@ module Reply
       @search.query = query if query
 
       from_index = reuse_index? ? @history.index - 1 : @history.size - 1
-      result, x, y = @search.search(@history, from_index)
-      @editor.replace(result || [""])
 
-      @editor.move_cursor_to(x + @search.query.size, y) if result
+      result = @search.search(@history, from_index)
+      if result
+        @editor.replace(result.result)
+
+        @editor.move_cursor_to(result.x + @search.query.size, result.y)
+      else
+        @editor.replace([""])
+      end
     end
 
     private def submit_expr(*, history = true)

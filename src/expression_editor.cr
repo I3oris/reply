@@ -83,8 +83,10 @@ module Reply
 
     @scroll_offset = 0
     @header_height = 0
+    @footer_height = 0
 
     @header : IO, Int32 -> Int32 = ->(io : IO, previous_height : Int32) { 0 }
+    @footer : IO, Int32 -> Int32 = ->(io : IO, previous_height : Int32) { 0 }
     @highlight = ->(code : String) { code }
 
     # The list of characters delimiting words.
@@ -101,9 +103,17 @@ module Reply
     # Sets a `Proc` allowing to display a header above the prompt. (used by auto-completion)
     #
     # *io*: The IO in which the header should be displayed.
-    # *previous_hight*: Previous header height, useful to keep a header size constant.
+    # *previous_height*: Previous header height, useful to keep a header size constant.
     # Should returns the exact *height* printed in the io.
     def set_header(&@header : IO, Int32 -> Int32)
+    end
+
+    # Sets a `Proc` allowing to display a footer under the prompt. (used by search)
+    #
+    # *io*: The IO in which the footer should be displayed.
+    # *previous_height*: Previous footer height.
+    # Should returns the exact *height* printed in the io.
+    def set_footer(&@footer : IO, Int32 -> Int32)
     end
 
     # Sets the `Proc` to highlight the expression.
@@ -383,7 +393,7 @@ module Reply
     #
     # The expression scrolls if it's higher than epression_max_height.
     private def epression_max_height
-      self.height - @header_height
+      self.height - @header_height - @footer_height
     end
 
     def move_cursor_left(allow_scrolling = true)
@@ -724,6 +734,13 @@ module Reply
       end
     end
 
+    # Calls the footer proc and saves the *footer_height*
+    private def update_footer : String
+      String.build do |io|
+        @footer_height = @footer.call(io, @footer_height)
+      end
+    end
+
     def replace(lines : Array(String))
       update { @lines = lines }
     end
@@ -873,6 +890,7 @@ module Reply
     private def print_expression_and_header(height_to_clear, force_full_view = false)
       height_to_clear += @header_height
       header = update_header()
+      footer = update_footer()
 
       if force_full_view
         start, end_ = 0, Int32::MAX
@@ -944,6 +962,17 @@ module Reply
         @output.print Term::Cursor.clear_screen_down
         @output.print header
         @output.print display
+
+        if @footer_height != 0
+          # Display footer, then rewind cursor at the top left of the footer
+          @output.puts
+          @output.print footer
+          @output.print Term::Cursor.column(1)
+          move_real_cursor(x: @prompt_size, y: 1 - @footer_height)
+
+          cursor_move_y += 1
+          cursor_move_x = 0
+        end
 
         # Retrieve the real cursor at its corresponding cursor position (`@x`, `@y`)
         x_save, y_save = @x, @y

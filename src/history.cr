@@ -2,11 +2,15 @@ module Reply
   class History
     getter history = Deque(Array(String)).new
     getter max_size = 10_000
-    @index = 0
+    getter index = 0
 
     # Hold the history lines being edited, always contains one element more than @history
     # because it can also contain the current line (not yet in history)
     @edited_history = [nil] of Array(String)?
+
+    def size
+      @history.size
+    end
 
     def <<(lines)
       lines = lines.dup # make history elements independent
@@ -45,8 +49,34 @@ module Reply
         @edited_history[@index] = current_edited_lines
 
         @index += 1
-        (@edited_history[@index]? || @history[@index]).dup
+        (@edited_history[@index]? || @history[@index]? || [""]).dup
       end
+    end
+
+    def go_to(index)
+      if 0 <= index < @history.size
+        @index = index
+
+        @history[@index].dup
+      end
+    end
+
+    def search_up(query, from_index = @index - 1)
+      return nil, 0, 0 if query.empty?
+      return nil, 0, 0 unless 0 <= from_index < @history.size
+
+      # Search the history starting by `from_index` until first entry,
+      # then cycle the search by searching from last entry to `from_index`
+      from_index.downto(0).chain(
+        (@history.size - 1).downto(from_index + 1)
+      ).each do |i|
+        @history[i].each_with_index do |line, y|
+          x = line.index query
+          return i, x, y if x
+        end
+      end
+
+      return nil, 0, 0
     end
 
     def max_size=(max_size)

@@ -27,6 +27,7 @@ module Reply
     def close
       @open = false
       @query = ""
+      @failed = false
     end
 
     def search(history, from_index = history.index - 1)

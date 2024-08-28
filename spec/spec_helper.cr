@@ -54,6 +54,22 @@ module Reply
     end
   end
 
+  class Search
+    setter failed
+
+    def verify(query, open = true, failed = false)
+      @query.should eq query
+      @open.should eq open
+      @failed.should eq failed
+    end
+
+    def verify_footer(footer, height)
+      String.build do |io|
+        footer(io, true).should eq height
+      end.should eq footer
+    end
+  end
+
   struct CharReader
     def verify_read(to_read, expect : CharReader::Sequence)
       verify_read(to_read, [expect])
@@ -79,6 +95,14 @@ module Reply
     end
 
     getter auto_completion
+  end
+
+  class SpecReaderWithSearch < Reader
+    def disable_search?
+      false
+    end
+
+    getter search
   end
 
   class SpecReaderWithEqual < Reader
@@ -139,6 +163,10 @@ module Reply
       history = History.new
       entries.each { |e| history << e }
       history
+    end
+
+    def self.search
+      Search.new.tap &.open
     end
 
     def self.char_reader(buffer_size = 64)

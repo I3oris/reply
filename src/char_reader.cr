@@ -45,8 +45,8 @@ module Reply
     end
 
     def read_char(from io : IO = STDIN)
-        nb_read = raw(io, &.read(@slice_buffer))
-        parse_escape_sequence(@slice_buffer[0...nb_read])
+      nb_read = raw(io, &.read(@slice_buffer))
+      parse_escape_sequence(@slice_buffer[0...nb_read])
     end
 
     private def parse_escape_sequence(chars : Bytes) : Char | Sequence | String?

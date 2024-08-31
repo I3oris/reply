@@ -9,6 +9,10 @@ crystal: 1.13.0
 
 license: MIT
 
+dependencies:
+  tartrazine:
+    github: ralsina/tartrazine
+
 development_dependencies:
   ameba:
     github: crystal-ameba/ameba

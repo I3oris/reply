@@ -15,7 +15,7 @@ module Reply
       height_got = nil
 
       display_got = String.build do |io|
-        height_got = self.display_entries(io, color?: false, width: with_width, max_height: max_height, min_height: min_height)
+        height_got = self.display_entries(io, color: false, width: with_width, max_height: max_height, min_height: min_height)
       end
       display_got.should eq display
       height_got.should eq height
@@ -148,7 +148,7 @@ module Reply
     end
 
     def self.expression_editor
-      editor = ExpressionEditor.new do |line_number, _color?|
+      editor = ExpressionEditor.new do |line_number, _color|
         # Prompt size = 5
         "p:#{sprintf("%02d", line_number)}>"
       end

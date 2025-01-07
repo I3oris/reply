@@ -846,9 +846,9 @@ module Reply
       {start, end_}
     end
 
-    private def print_line(io, colorized_line, line_index, line_size, prompt?, first?, is_last_part?)
-      if prompt?
-        io.puts unless first?
+    private def print_line(io, colorized_line, line_index, line_size, prompt, first, is_last_part)
+      if prompt
+        io.puts unless first
         print_prompt(io, line_index)
       end
       io.print colorized_line
@@ -860,10 +860,10 @@ module Reply
       # prompt>  bar                  |    extra line feed, so computes based on `%` or `//` stay exact.
       # prompt>end                    |
       # ```
-      io.puts if is_last_part? && last_part_size(line_size) == 0
+      io.puts if is_last_part && last_part_size(line_size) == 0
     end
 
-    private def sync_output
+    private def sync_output(&)
       if (output = @output).is_a?(IO::FileDescriptor) && output.tty?
         # Disallowing the synchronization reduce blinking on some terminal like vscode (#10)
         output.sync = false

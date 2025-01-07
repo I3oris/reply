@@ -10,9 +10,9 @@ module Reply
       x : Int32,
       y : Int32
 
-    def footer(io : IO, color? : Bool)
+    def footer(io : IO, color : Bool)
       if open?
-        io << "search: #{@query.colorize.toggle(failed? && color?).bold.red}_"
+        io << "search: #{@query.colorize.toggle(failed? && color).bold.red}_"
         1
       else
         0

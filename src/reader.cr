@@ -11,7 +11,7 @@ module Reply
   #
   # ```
   # class MyReader < Reply::Reader
-  #   def prompt(io, line_number, color?)
+  #   def prompt(io, line_number, color)
   #     io << "reply> "
   #   end
   # end
@@ -60,9 +60,9 @@ module Reply
     delegate :word_delimiters, :word_delimiters=, to: @editor
 
     def initialize
-      @editor = ExpressionEditor.new do |expr_line_number, color?|
+      @editor = ExpressionEditor.new do |expr_line_number, color|
         String.build do |io|
-          prompt(io, @line_number + expr_line_number, color?)
+          prompt(io, @line_number + expr_line_number, color)
         end
       end
 
@@ -72,11 +72,11 @@ module Reply
       @auto_completion.set_display_selected_entry(&->auto_completion_display_selected_entry(IO, String))
 
       @editor.set_header do |io, previous_height|
-        @auto_completion.display_entries(io, color?, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
+        @auto_completion.display_entries(io, color, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
       end
 
       @editor.set_footer do |io, _previous_height|
-        @search.footer(io, color?)
+        @search.footer(io, color)
       end
 
       @editor.set_highlight(&->highlight(String))
@@ -88,10 +88,10 @@ module Reply
 
     # Override to customize the prompt.
     #
-    # Toggle the colorization following *color?*.
+    # Toggle the colorization following *color*.
     #
     # default: `$:001> `
-    def prompt(io : IO, line_number : Int32, color? : Bool)
+    def prompt(io : IO, line_number : Int32, color : Bool)
       io << "$:"
       io << sprintf("%03d", line_number)
       io << "> "
@@ -489,10 +489,10 @@ module Reply
       end
     end
 
-    private def search_and_replace(query = nil, reuse_index? = false)
+    private def search_and_replace(query = nil, reuse_index = false)
       @search.query = query if query
 
-      from_index = reuse_index? ? @history.index - 1 : @history.size - 1
+      from_index = reuse_index ? @history.index - 1 : @history.size - 1
 
       result = @search.search(@history, from_index)
       if result

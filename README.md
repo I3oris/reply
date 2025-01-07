@@ -53,7 +53,7 @@ end
 require "reply"
 
 class MyReader < Reply::Reader
-  def prompt(io : IO, line_number : Int32, color? : Bool) : Nil
+  def prompt(io : IO, line_number : Int32, color : Bool) : Nil
     # Display a custom prompt
   end
 

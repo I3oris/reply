@@ -391,7 +391,7 @@ module Reply
     end
 
     it "is aligned when prompt size change" do
-      editor = ExpressionEditor.new do |line_number, _color?|
+      editor = ExpressionEditor.new do |line_number, _color|
         "*" * line_number + ">" # A prompt that increase its size at each line
       end
       editor.output = IO::Memory.new

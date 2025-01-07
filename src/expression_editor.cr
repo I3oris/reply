@@ -53,7 +53,7 @@ module Reply
   class ExpressionEditor
     getter lines : Array(String) = [""]
     getter expression : String? { lines.join('\n') }
-    getter expression_height : Int32? { lines.sum { |l| line_height(l) } }
+    getter expression_height : Int32? { lines.sum { |line| line_height(line) } }
     property? color = true
     property output : IO = STDOUT
 
@@ -263,8 +263,8 @@ module Reply
 
     # Should be called inside an `update`.
     def <<(str : String) : self
-      str.each_char do |ch|
-        self << ch
+      str.each_char do |char|
+        self << char
       end
       self
     end
@@ -374,7 +374,7 @@ module Reply
     end
 
     private def height_above_cursor(x = @x, y = @y)
-      height = @lines.each.first(@y).sum { |l| line_height(l) }
+      height = @lines.each.first(@y).sum { |line| line_height(line) }
       height += line_height(current_line[...@x]) - 1
       height
     end

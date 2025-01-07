@@ -67,7 +67,7 @@ module Reply
 
     def load(file : Path | String)
       File.touch(file) unless File.exists?(file)
-      File.open(file, "r") { |f| load(f) }
+      File.open(file, "r") { |fil| load(fil) }
     end
 
     def load(io : IO)
@@ -94,7 +94,7 @@ module Reply
     end
 
     def save(file : Path | String)
-      File.open(file, "w") { |f| save(f) }
+      File.open(file, "w") { |fil| save(fil) }
     end
 
     def save(io : IO)

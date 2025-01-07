@@ -99,22 +99,22 @@ module Reply
         end
       end
 
-      nb_rows.times do |r|
-        nb_cols.times do |c|
-          c += col_start
+      nb_rows.times do |row|
+        nb_cols.times do |col|
+          col += col_start
 
-          entry = columns[c][r]
-          col_width = column_widths[c]
+          entry = columns[col][row]
+          col_width = column_widths[col]
 
           # `...` on the last column and row:
-          if (r == nb_rows - 1) && (c - col_start == nb_cols - 1) && columns[c + 1]?
+          if (row == nb_rows - 1) && (col - col_start == nb_cols - 1) && columns[col + 1]?
             entry += ".."
           end
 
           # Entry to display:
           entry_str = entry.ljust(col_width)
 
-          if r + c*nb_rows == @selection_pos
+          if row + col*nb_rows == @selection_pos
             # Colorize selection:
             if color
               @display_selected_entry.call(io, entry_str)
@@ -226,15 +226,15 @@ module Reply
     private def compute_nb_row(entries, max_nb_row, width)
       if entries.size > 10
         # test possible nb rows: (1 to max_nb_row)
-        1.to max_nb_row do |r|
+        1.to max_nb_row do |row|
           w = 0
           # Sum the width of each given column:
-          entries.each_slice(r, reuse: true) do |col|
+          entries.each_slice(row, reuse: true) do |col|
             w += col.max_of &.size + 2
           end
 
           # If *w* goes past *width*, we found min row required:
-          return r if w < width
+          return row if w < width
         end
       end
 

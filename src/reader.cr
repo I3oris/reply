@@ -72,11 +72,11 @@ module Reply
       @auto_completion.set_display_selected_entry(&->auto_completion_display_selected_entry(IO, String))
 
       @editor.set_header do |io, previous_height|
-        @auto_completion.display_entries(io, color, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
+        @auto_completion.display_entries(io, color?, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
       end
 
       @editor.set_footer do |io, _previous_height|
-        @search.footer(io, color)
+        @search.footer(io, color?)
       end
 
       @editor.set_highlight(&->highlight(String))
@@ -410,7 +410,7 @@ module Reply
 
       @auto_completion.close
       @search.open
-      search_and_replace(reuse_index?: true)
+      search_and_replace(reuse_index: true)
     end
 
     private def on_tab(shift_tab = false)

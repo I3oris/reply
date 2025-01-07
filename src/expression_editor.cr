@@ -928,7 +928,7 @@ module Reply
 
           if start <= y && y + line_height - 1 <= end_
             # The line can hold entirely between the view bounds, print it:
-            print_line(io, colorized_lines[line_index], line_index, line.size, prompt?: true, first?: first, is_last_part?: true)
+            print_line(io, colorized_lines[line_index], line_index, line.size, prompt: true, first: first, is_last_part: true)
             first = false
 
             cursor_move_x = line.size
@@ -943,7 +943,7 @@ module Reply
             colorized_parts.each_with_index do |colorized_part, part_number|
               if start <= y <= end_
                 # The part holds on the view, we can print it.
-                print_line(io, colorized_part, line_index, line.size, prompt?: part_number == 0, first?: first, is_last_part?: part_number == line_height - 1)
+                print_line(io, colorized_part, line_index, line.size, prompt: part_number == 0, first: first, is_last_part: part_number == line_height - 1)
                 first = false
 
                 cursor_move_x = {line.size, (part_number + 1)*self.width - @prompt_size - 1}.min

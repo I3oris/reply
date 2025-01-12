@@ -49,6 +49,22 @@ module Reply
       end
     end
 
+    # Override this method to provide name completion for arguments to a command.
+    def do_auto_complete(name_filter : String, expression_before : String) : {String, Array(String)}
+      {"", [] of String}
+    end
+
+    # `DoMethods#auto_complete` (this method) matches the first command to the
+    # commands defined by the `do_` methods, and hands off any subsequent
+    # completion requests to `#do_auto_complete`.
+    def auto_complete(name_filter : String, expression_before : String) : {String, Array(String)}
+      if expression_before.empty? || expression_before == "help "
+        {name_filter, @@commands.keys.select &.starts_with? name_filter}
+      else
+        do_auto_complete name_filter, expression_before
+      end
+    end
+
     macro included
       @@commands : Hash(String, ::Reply::DoCommand({{@type}})) = {
         "help" => ::Reply::DoCommand.new(

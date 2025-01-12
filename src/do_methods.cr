@@ -1,6 +1,7 @@
 module Reply
   annotation Help
   end
+
   class DoCommand(R)
     property action : R, String -> Bool
     property doc : String?
@@ -14,14 +15,15 @@ module Reply
       return true if @@commands.empty?
       if arg && !arg.empty?
         if cmd = @@commands[arg]
-          puts "#{arg}: #{cmd.doc}"
+          puts "    #{arg}        #{cmd.doc}"
         else
           puts "Command '#{arg}' not found"
         end
       else
+        puts "Available Commands:"
         longest_cmd = @@commands.keys.max_by(&.size).size
         @@commands.each do |name, command|
-          puts "#{name.rjust longest_cmd}: #{command.doc}"
+          puts "    #{name.rjust longest_cmd}        #{command.doc}"
         end
       end
       false

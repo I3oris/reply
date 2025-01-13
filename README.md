@@ -13,6 +13,7 @@ It includes the following features:
 * Hook for Auto indentation
 * Hook for Auto completion (Experimental)
 * History Reverse i-search
+* Commands with do_methods
 * Work on Windows 10
 
 It doesn't support yet:
@@ -47,7 +48,7 @@ reader.read_loop do |expression|
 end
 ```
 
-### Customize the Interface
+### Customize the interface
 
 ```crystal
 require "reply"
@@ -83,7 +84,28 @@ class MyReader < Reply::Reader
 end
 ```
 
-## Similar Project
+### Add commands to your REPL
+```crystal
+require "reply"
+
+class MyReader < Reply::Reader
+  include Commands
+
+  # Method starting with 'do_' will add a command.
+  def do_custom_command(arg1 : String, arg2 = nil)
+    puts "Executing command 'custom_command' with arguments: #{arg1} #{arg2}"
+  end
+end
+
+reader = Reply::Reader.new
+reader.run_commands_loop
+
+# Test with:
+# $:010>custom_command foo
+```
+> See [examples/command_repl.cr](examples/command_relp.cr) for more details.
+
+## Similar projects
 * [fancyline](https://github.com/Papierkorb/fancyline)
 * [crystal-readline](https://github.com/crystal-lang/crystal-readline)
 

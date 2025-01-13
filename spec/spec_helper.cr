@@ -139,6 +139,34 @@ module Reply
     getter auto_completion
   end
 
+  class SpecCommandReader < Reader
+    include Commands
+
+    def do_method
+      output.puts "executing method"
+    end
+
+    @[Help("Help summary")]
+    def do_method_with_single_arg(arg)
+      output.puts "executing method_with_single_arg, args: #{arg}"
+    end
+
+    @[Help("Help summary", details: "Help details")]
+    def do_method_with_complex_args(arg1, arg2 : String, arg3 : String?, arg4 = "foo", arg5 = nil, *args)
+      all_args = [arg1, arg2, arg3, arg4, arg5] + args[0]
+      output.puts "executing method_with_complex_args, args: #{all_args.join(" ") { |arg| arg || "nil" }}"
+    end
+
+    @[Exit]
+    def do_exit_method
+      output.puts "executing exit_method"
+    end
+
+    def exit_result?(result)
+      result.is_a? ExitResult
+    end
+  end
+
   module SpecHelper
     def self.auto_completion(returning results)
       results = results.clone

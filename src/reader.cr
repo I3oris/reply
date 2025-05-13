@@ -435,13 +435,13 @@ module Reply
     private def on_alt_d
       if @auto_completion.open?
         if (entry = @auto_completion.current_entry?) && (doc = documentation(entry))
-          AlternateScreen.open(doc)
+          AlternateScreen.open(doc, color?)
         end
       else
         replacement = compute_completions
         @auto_completion.close
         if replacement && replacement == @editor.current_word && (doc = documentation(replacement))
-          AlternateScreen.open(doc)
+          AlternateScreen.open(doc, color?)
         end
       end
     end

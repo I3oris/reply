@@ -23,7 +23,7 @@ module Reply
   private class AutoCompletion
     getter? open = false
     getter? cleared = false
-    @selection_pos : Int32? = nil
+    getter selection_position : Int32? = nil
 
     @title = ""
     @all_entries = [] of String
@@ -44,7 +44,7 @@ module Reply
     end
 
     def name_filter=(@name_filter)
-      @selection_pos = nil
+      @selection_position = nil
       @entries = @all_entries.select(&.starts_with?(@name_filter))
     end
 
@@ -89,7 +89,7 @@ module Reply
       nb_cols = nb_colomns_in_width(column_widths, width)
 
       col_start = 0
-      if pos = @selection_pos
+      if pos = @selection_position
         col_end = pos // nb_rows
 
         if col_end >= nb_cols
@@ -114,7 +114,7 @@ module Reply
           # Entry to display:
           entry_str = entry.ljust(col_width)
 
-          if row + col*nb_rows == @selection_pos
+          if row + col*nb_rows == @selection_position
             # Colorize selection:
             if color
               @display_selected_entry.call(io, entry_str)
@@ -147,12 +147,12 @@ module Reply
     def selection_next
       return nil if @entries.empty?
 
-      if (pos = @selection_pos).nil?
+      if (pos = @selection_position).nil?
         new_pos = 0
       else
         new_pos = (pos + 1) % @entries.size
       end
-      @selection_pos = new_pos
+      @selection_position = new_pos
       @entries[new_pos]
     end
 
@@ -160,12 +160,12 @@ module Reply
     def selection_previous
       return nil if @entries.empty?
 
-      if (pos = @selection_pos).nil?
+      if (pos = @selection_position).nil?
         new_pos = 0
       else
         new_pos = (pos - 1) % @entries.size
       end
-      @selection_pos = new_pos
+      @selection_position = new_pos
       @entries[new_pos]
     end
 
@@ -175,7 +175,7 @@ module Reply
     end
 
     def close
-      @selection_pos = nil
+      @selection_position = nil
       @entries.clear
       @name_filter = ""
       @all_entries.clear
@@ -186,6 +186,12 @@ module Reply
     def clear
       close
       @cleared = true
+    end
+
+    def current_entry?
+      if pos = @selection_position
+        @entries[pos]?
+      end
     end
 
     def set_display_title(&@display_title : IO, String ->)

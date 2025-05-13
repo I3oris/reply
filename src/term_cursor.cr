@@ -175,5 +175,13 @@ module Reply::Term
     def scroll_down
       ESC + "D"
     end
+
+    def alternate_screen
+      CSI + "?47h"
+    end
+
+    def normal_screen
+      CSI + "?47l"
+    end
   end
 end

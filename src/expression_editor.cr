@@ -938,7 +938,7 @@ module Reply
           else
             # The line cannot holds entirely between the view bounds.
             # We need to cut the line into each part and display only parts that hold in the view
-            colorized_parts = parts_from_colorized(colorized_lines[line_index])
+            colorized_parts = ExpressionEditor.parts_from_colorized(colorized_lines[line_index], self.width, @prompt_size)
 
             colorized_parts.each_with_index do |colorized_part, part_number|
               if start <= y <= end_
@@ -992,13 +992,13 @@ module Reply
     #  * Count cursor `x` for each char unless color sequences
     #  * If count goes over term width:
     #    reset `x` to 0, and create a new `String::Builder` for next part.
-    private def parts_from_colorized(line)
+    def self.parts_from_colorized(line, width, prompt_size = 0)
       parts = Array(String).new
 
       color_sequence = ""
       part_builder = String::Builder.new
 
-      x = @prompt_size
+      x = prompt_size
       chars = line.each_char
       until (c = chars.next).is_a? Iterator::Stop
         # Parse color sequence:
@@ -1018,7 +1018,7 @@ module Reply
           x += 1
         end
 
-        if x >= self.width
+        if x >= width
           # Wrapping: save part and create a new builder for next part
           part_builder << "\e[0m"
           parts << part_builder.to_s

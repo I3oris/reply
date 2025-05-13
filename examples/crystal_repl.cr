@@ -109,6 +109,18 @@ class CrystalReader < Reply::Reader
   def auto_completion_display_entry(io : IO, entry_matched : String, entry_remaining : String)
     io << entry_matched.colorize.red.bright << entry_remaining
   end
+
+  def documentation(entry : String)
+    <<-END
+    This is the example documentation for '#{entry}'
+
+    Good bye
+    END
+  end
+
+  def documentation_summary(entry : String)
+    super.try &.colorize.dark_gray
+  end
 end
 
 reader = CrystalReader.new

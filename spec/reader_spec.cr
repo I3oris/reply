@@ -563,13 +563,13 @@ module Reply
         amet()
         END
 
-      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
       reader.editor.verify(<<-END, x: 8, y: 0)
         lorem   ", sit:
         amet()
         END
 
-      SpecHelper.send(pipe_in, "\ed")     # Alt-d (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
       SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
       SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
       reader.editor.verify(<<-END, x: 8, y: 0)
@@ -582,8 +582,8 @@ module Reply
         ()
         END
 
-      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
-      SpecHelper.send(pipe_in, "\ed") # Alt-d (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
+      SpecHelper.send(pipe_in, "\e[3;5~") # Ctrl-delete (word_back)
       reader.editor.verify("", x: 0, y: 0)
 
       SpecHelper.send(pipe_in, "\0")

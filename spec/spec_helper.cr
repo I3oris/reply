@@ -8,7 +8,7 @@ module Reply
       self.cleared?.should eq cleared
       self.name_filter.should eq name_filter
       self.entries.should eq entries
-      @selection_pos.should eq selection_pos
+      @selection_position.should eq selection_pos
     end
 
     def verify_display(max_height, min_height, with_width, display, height)

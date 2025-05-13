@@ -3,6 +3,7 @@ require "./expression_editor"
 require "./char_reader"
 require "./auto_completion"
 require "./search"
+require "./alternate_screen"
 
 module Reply
   # Reader for your REPL.
@@ -72,11 +73,19 @@ module Reply
       @auto_completion.set_display_selected_entry(&->auto_completion_display_selected_entry(IO, String))
 
       @editor.set_header do |io, previous_height|
-        @auto_completion.display_entries(io, color?, max_height: {10, Term::Size.height - 1}.min, min_height: previous_height)
+        max_h = Term::Size.height - 1 - 1 # TODO: consider footer height here
+        @auto_completion.display_entries(io, color?, max_height: {10, max_h}.min, min_height: previous_height)
       end
 
       @editor.set_footer do |io, _previous_height|
-        @search.footer(io, color?)
+        if (entry = @auto_completion.current_entry?) && (summary = documentation_summary(entry))
+          io.print summary
+
+          uncolorized = summary.to_s.gsub(/\e\[.*?m/, "")
+          1 + (uncolorized.size) // (@editor.width + 1)
+        else
+          @search.footer(io, color?)
+        end
       end
 
       @editor.set_highlight(&->highlight(String))
@@ -189,6 +198,24 @@ module Reply
       false
     end
 
+    # Override to set the entire documentation for an autocompletion entry.
+    #
+    # If not nil, the documentation is shown in its own alternate screen when alt-d is pressed.
+    #
+    # default: `nil`
+    def documentation(entry : String)
+      nil
+    end
+
+    # Override to set the documentation summary for an autocompletion entry.
+    #
+    # If not nil, the summary is shown below the prompt, only one line is currently supported
+    #
+    # default: first line of `documentation`.
+    def documentation_summary(entry : String)
+      documentation(entry).try &.each_line.first
+    end
+
     # Override to enable line re-indenting.
     #
     # This methods is called each time a character is entered.
@@ -244,7 +271,7 @@ module Reply
         in .alt_f?          then @editor.move_word_forward
         in .alt_b?          then @editor.move_word_backward
         in .ctrl_delete?    then @editor.update { delete_word }
-        in .alt_d?          then @editor.update { delete_word }
+        in .alt_d?          then on_alt_d
         in .ctrl_c?         then on_ctrl_c
         in .ctrl_r?         then on_ctrl_r
         in .ctrl_d?
@@ -265,7 +292,7 @@ module Reply
           @editor.update
         end
 
-        if read.is_a?(CharReader::Sequence) && (read.tab? || read.enter? || read.alt_enter? || read.shift_tab? || read.escape? || read.backspace? || read.ctrl_c?)
+        if read.is_a?(CharReader::Sequence) && (read.tab? || read.enter? || read.alt_enter? || read.shift_tab? || read.escape? || read.backspace? || read.ctrl_c? || read.alt_d?)
         else
           if @auto_completion.open?
             replacement = auto_complete_insert_char(read)
@@ -403,6 +430,20 @@ module Reply
       output.puts "^C"
       @history.set_to_last
       @editor.prompt_next
+    end
+
+    private def on_alt_d
+      if @auto_completion.open?
+        if (entry = @auto_completion.current_entry?) && (doc = documentation(entry))
+          AlternateScreen.open(doc)
+        end
+      else
+        replacement = compute_completions
+        @auto_completion.close
+        if replacement && replacement == @editor.current_word && (doc = documentation(replacement))
+          AlternateScreen.open(doc)
+        end
+      end
     end
 
     private def on_ctrl_r

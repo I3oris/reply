@@ -1,3 +1,26 @@
+## RELPy v0.4.0
+
+### New features
+* Add `auto_completion_retrigger_when` to allow retriggering auto-completion when typing ':'. Permit auto completion to work well when crossing `::`. Add spec and fix typo. (#6), thanks @Vici37
+* Implement reverse-i-search on `ctrl+r`, and add a `disable_search?` hook.
+* Implement new `Commands` module that add the capability to parse and
+* execute commands defined with do_methods. Inspired by #10. thanks @dscottboggs
+* Add `documentation` to allow to open a documentation on an alternate screen on a specific word when auto-completing. Shortcut: `alt-d`. Work also on current word.
+* Add `documentation_summary`to display a short documentation summary on the footer when auto completing.
+
+### Bug fixs
+* Fix `ioctl` on Android. (#5) , thanks @HertzDevil
+* Fix Windows compilation for Crystal 1.13+ (#7), thanks @HertzDevil
+* Fix messed up display when empty prompt.
+* Fix compilation errors.
+
+### Internals
+* Small Refactor.
+* Write reverse-i-search specs.
+* Stop using parameter names ending with `?` (#9), thanks, @oprypin
+* Fix new ameba lint errors.
+* Optimize and improve display of AlternateSreen.
+
 ## RELPy v0.3.1
 
 ### Bug fixs
